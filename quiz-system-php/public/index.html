@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#f6f7f9" />
+    <title>AI20K Quiz Lab — PHP / MySQL</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+    <main id="login-view" class="login-layout">
+      <section class="login-intro">
+        <div class="brand-mark" aria-hidden="true">A<span>I</span></div>
+        <p class="eyebrow">AI20K / PHP + MYSQL</p>
+        <h1>Ôn tập có hệ thống.<br /><span>Tiến bộ có dữ liệu.</span></h1>
+        <p class="intro-copy">
+          Ngân hàng 300 câu hỏi Applied AI với tài khoản riêng, lịch sử làm bài và
+          hàng đợi lặp lại câu sai được lưu trong MySQL.
+        </p>
+        <div class="intro-note"><span class="note-dot"></span><span>MySQL-backed learning loop</span></div>
+      </section>
+
+      <section class="login-panel panel">
+        <div class="panel-kicker">Tài khoản học tập</div>
+        <h2 id="auth-title">Đăng nhập</h2>
+        <p id="auth-subtitle" class="muted">Đăng nhập để mở bộ câu hỏi và lưu tiến độ cá nhân.</p>
+
+        <form id="login-form" class="stack-form">
+          <label class="field-label" for="login-username">Tên tài khoản</label>
+          <input id="login-username" name="username" class="text-input" type="text" minlength="3" autocomplete="username" placeholder="demo" required />
+          <label class="field-label" for="login-password">Mật khẩu</label>
+          <input id="login-password" name="password" class="text-input" type="password" minlength="6" autocomplete="current-password" placeholder="••••••••" required />
+          <p id="login-error" class="form-error" hidden></p>
+          <button class="button button-primary button-wide" type="submit">Đăng nhập <span>→</span></button>
+        </form>
+
+        <form id="register-form" class="stack-form" hidden>
+          <label class="field-label" for="register-display-name">Tên hiển thị</label>
+          <input id="register-display-name" name="display_name" class="text-input" type="text" minlength="2" autocomplete="name" placeholder="Nguyễn Văn An" required />
+          <label class="field-label" for="register-username">Tên tài khoản</label>
+          <input id="register-username" name="username" class="text-input" type="text" minlength="3" autocomplete="username" placeholder="nguyen-van-an" required />
+          <label class="field-label" for="register-password">Mật khẩu</label>
+          <input id="register-password" name="password" class="text-input" type="password" minlength="6" autocomplete="new-password" placeholder="Tối thiểu 6 ký tự" required />
+          <p id="register-error" class="form-error" hidden></p>
+          <button class="button button-primary button-wide" type="submit">Tạo tài khoản <span>→</span></button>
+        </form>
+
+        <div class="auth-switch">
+          <span id="auth-switch-copy">Chưa có tài khoản?</span>
+          <button id="auth-switch-button" class="text-button" type="button">Tạo tài khoản</button>
+        </div>
+        <p class="demo-credential"><span>DEMO</span> demo / AI20K@2026</p>
+        <p class="security-note"><span>⌁</span> Mật khẩu được hash bằng PHP password_hash().</p>
+      </section>
+    </main>
+
+    <div id="app-view" class="app-shell" hidden>
+      <aside class="sidebar">
+        <div class="sidebar-brand">
+          <div class="brand-mark small" aria-hidden="true">A<span>I</span></div>
+          <div><strong>AI20K</strong><span>QUIZ LAB / PHP</span></div>
+        </div>
+        <nav class="main-nav" aria-label="Điều hướng chính">
+          <p class="nav-label">Workspace</p>
+          <button class="nav-item is-active" data-view="dashboard"><span class="nav-icon">⌂</span><span>Tổng quan</span></button>
+          <button class="nav-item" data-view="quiz"><span class="nav-icon">□</span><span>Bắt đầu ôn tập</span></button>
+          <button class="nav-item" data-view="wrong"><span class="nav-icon">↻</span><span>Luyện câu sai</span><span id="sidebar-wrong-count" class="nav-count">0</span></button>
+        </nav>
+        <div class="sidebar-bottom">
+          <div class="system-status"><span class="status-dot"></span><div><strong>MySQL online</strong><span>PHP serverless backend</span></div></div>
+          <button id="logout-button" class="nav-item logout-button"><span class="nav-icon">↪</span><span>Đăng xuất</span></button>
+        </div>
+      </aside>
+
+      <section class="content-shell">
+        <header class="topbar">
+          <div><p class="breadcrumb">AI20K / <span id="breadcrumb-current">OVERVIEW</span></p><h1 id="page-title">Tổng quan học tập</h1></div>
+          <div class="user-chip"><span id="user-initial" class="avatar">A</span><span id="user-name">Người học</span></div>
+        </header>
+
+        <main class="page-content">
+          <section id="dashboard-section" class="view-section">
+            <div class="metric-grid">
+              <article class="metric-card"><div class="metric-label">LƯỢT LÀM BÀI</div><div id="metric-attempts" class="metric-value">0</div><div class="metric-foot">Tổng số lần hoàn thành</div></article>
+              <article class="metric-card accent-card"><div class="metric-label">ĐIỂM TRUNG BÌNH</div><div id="metric-average" class="metric-value">0%</div><div class="metric-foot">Trên các bài đã nộp</div></article>
+              <article class="metric-card"><div class="metric-label">CÂU ĐÃ TRẢ LỜI</div><div id="metric-answered" class="metric-value">0</div><div class="metric-foot">Lưu từ MySQL</div></article>
+              <article class="metric-card warning-card"><div class="metric-label">CẦN LUYỆN LẠI</div><div id="metric-wrong" class="metric-value">0</div><div class="metric-foot">Câu sai đang chờ xử lý</div></article>
+            </div>
+
+            <div class="dashboard-grid">
+              <article class="action-card panel"><div class="card-topline"><span class="card-index">01</span><span class="tag">20 / 300 BANK</span></div><h3>Bắt đầu bài ôn tập</h3><p>Mỗi lượt chọn 20 câu ngẫu nhiên trong đúng nhánh chủ đề bạn chọn, không trộn lẫn toàn bộ ngân hàng.</p><div class="topic-picker"><label class="field-label" for="topic-select">Nhánh chủ đề</label><select id="topic-select" class="text-input" aria-label="Chọn nhánh chủ đề"></select><span id="topic-hint" class="topic-hint">Đang tải danh sách chủ đề...</span></div><div class="action-meta"><span>20 câu / lượt</span><span>Random trong chủ đề</span><span>MySQL save</span></div><button class="button button-dark" data-action="start-normal">Bắt đầu theo chủ đề <span>→</span></button></article>
+            </div>
+            <article class="recent-panel panel"><div class="panel-heading"><div><p class="eyebrow">ACTIVITY LOG</p><h3>Lịch sử gần đây</h3></div><span class="subtle-label">Đồng bộ từ MySQL</span></div><div id="recent-list" class="recent-list"><div class="empty-state compact">Chưa có bài làm. Bắt đầu bài đầu tiên của bạn.</div></div></article>
+          </section>
+
+          <section id="quiz-section" class="view-section" hidden>
+            <div class="quiz-headline"><div><p id="quiz-mode-label" class="eyebrow">FIXED SET / 20 QUESTIONS</p><h2 id="quiz-title">Bài ôn tập</h2></div><button class="button button-ghost" data-action="exit-quiz">Thoát bài</button></div>
+            <div class="progress-row"><div class="progress-track"><span id="quiz-progress-bar"></span></div><span id="quiz-progress-text">1 / 20</span></div>
+            <article class="question-card panel"><div class="question-main"><div class="question-meta"><span id="question-number" class="question-number">QUESTION 01</span><span id="question-difficulty" class="difficulty-badge">Dễ</span><span id="question-topic" class="topic-label">LLM</span></div><h3 id="question-prompt">Đang tải câu hỏi...</h3><div id="options-list" class="options-list"></div><div class="quiz-controls"><button id="previous-question" class="button button-ghost" data-action="previous-question">← Câu trước</button><span id="answered-indicator" class="answered-indicator">Chưa chọn đáp án</span><button id="next-question" class="button button-primary" data-action="next-question">Câu tiếp theo →</button></div></div><aside id="live-explanation" class="live-explanation"><div class="live-explanation-head"><div><p class="eyebrow">ANSWER NOTE</p><strong>Giải thích ngay cho câu này</strong></div><span id="live-explanation-status" class="tag">SẴN SÀNG</span></div><p id="live-explanation-lock-copy" class="muted">Mở phần giải thích ngay để xem lý do và nghĩa của thuật ngữ tiếng Anh.</p><button id="live-explanation-button" class="button button-outline" data-action="open-live-explanation" type="button">Mở giải thích + thuật ngữ <span>↓</span></button><div id="live-explanation-content" class="explanation-panel" hidden></div></aside></article>
+          </section>
+
+          <section id="result-section" class="view-section" hidden>
+            <div class="result-topline"><div><p class="eyebrow">ATTEMPT COMPLETE</p><h2>Kết quả bài làm</h2></div><button class="button button-primary" data-action="start-normal">Làm bài mới <span>→</span></button></div>
+            <article class="result-summary panel"><div class="score-ring"><span id="result-score">0/20</span><small>điểm</small></div><div><p class="eyebrow">YOUR PERFORMANCE</p><h3 id="result-message">Bài làm đã được lưu</h3><p id="result-detail" class="muted">Các câu sai đã được đưa vào hàng đợi luyện lại.</p></div><div class="result-stat"><span>Đang chờ luyện lại</span><strong id="result-pending">0</strong></div></article>
+            <div class="panel-heading result-list-heading"><div><p class="eyebrow">ANSWER REVIEW</p><h3>Phân tích từng câu</h3></div><span class="subtle-label">Đáp án + giải thích</span></div><div id="result-list" class="result-list"></div>
+          </section>
+
+          <section id="wrong-section" class="view-section" hidden>
+            <div class="section-heading"><div><p class="eyebrow">SPACED REVIEW / WRONG ANSWERS</p><h2>Luyện lại câu sai</h2></div><button class="button button-primary" data-action="start-wrong">Bắt đầu luyện <span>↻</span></button></div>
+            <article class="panel review-intro"><div class="review-icon">↻</div><div><h3>Danh sách này tự cập nhật</h3><p>Câu trả lời sai sẽ được lưu vào MySQL. Mỗi lần trả lời đúng trong chế độ luyện, một lượt chờ sẽ được gỡ khỏi danh sách.</p></div><strong id="wrong-page-count">0</strong></article>
+            <article class="panel wrong-table-panel"><div class="panel-heading"><div><p class="eyebrow">REVIEW QUEUE</p><h3>Câu hỏi đang chờ</h3></div><span class="subtle-label">Ưu tiên câu sai nhiều lần</span></div><div id="wrong-list" class="wrong-list"></div></article>
+          </section>
+        </main>
+      </section>
+    </div>
+
+    <div id="payment-modal" class="modal-backdrop" hidden>
+      <div class="payment-modal panel" role="dialog" aria-modal="true">
+        <button id="close-payment" class="modal-close" type="button" aria-label="Đóng">×</button>
+        <div class="payment-icon">₫</div><p class="eyebrow">DEMO PAYMENT GATE</p>
+        <div class="qr-wrap"><img id="vietqr-image" class="qr-image" alt="Mã QR VietQR thanh toán demo" /></div>
+        <div class="payment-account" aria-label="Thông tin chuyển khoản demo">
+          <div class="payment-account-row"><span>Ngân hàng</span><strong>MB Bank</strong></div>
+          <div class="payment-account-row"><span>Chủ tài khoản</span><strong id="qr-account-name">Vũ Văn Huy</strong></div>
+          <div class="payment-account-row"><span>Số tài khoản</span><strong id="qr-account-number">0339761204</strong></div>
+          <div class="payment-account-row"><span>Số tiền</span><strong id="qr-amount">5.000₫</strong></div>
+          <div class="payment-account-row"><span>Nội dung</span><strong id="qr-content">đóng họ hệ thống</strong></div>
+        </div>
+        <div class="payment-line"><span>Gói giải thích câu hỏi</span><strong>DEMO · 5.000₫</strong></div>
+        <p id="payment-error" class="form-error" hidden></p>
+        <button id="demo-payment-button" class="button button-primary button-wide" type="button">Mở giải thích (demo) <span>→</span></button>
+        <button id="skip-payment" class="button button-ghost button-wide payment-skip" type="button">Bỏ qua, vào giải thích</button>
+      </div>
+    </div>
+
+    <script src="/app.js" defer></script>
+  </body>
+</html>

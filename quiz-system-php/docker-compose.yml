@@ -1,0 +1,38 @@
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: ai20k-mysql
+    environment:
+      MYSQL_DATABASE: ai20k_quiz
+      MYSQL_USER: ai20k_user
+      MYSQL_PASSWORD: ai20k_local_password
+      MYSQL_ROOT_PASSWORD: ai20k_root_password
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./database/seed.sql:/docker-entrypoint-initdb.d/02-seed.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-hai20k-mysql", "-uai20k_user", "-pai20k_local_password"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  app:
+    build: .
+    container_name: ai20k-php
+    environment:
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_DATABASE: ai20k_quiz
+      MYSQL_USER: ai20k_user
+      MYSQL_PASSWORD: ai20k_local_password
+    depends_on:
+      mysql:
+        condition: service_healthy
+    ports:
+      - "8082:80"
+    restart: unless-stopped
+
+volumes:
+  mysql_data:

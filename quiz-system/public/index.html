@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#f6f7f9" />
+    <title>AI20K Quiz Lab</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+    <main id="login-view" class="login-layout">
+      <section class="login-intro">
+        <div class="brand-mark" aria-hidden="true">A<span>I</span></div>
+        <p class="eyebrow">AI20K / QUIZ LAB</p>
+        <h1>Ôn tập có hệ thống.<br /><span>Tiến bộ có dữ liệu.</span></h1>
+        <p class="intro-copy">
+          Bài kiểm tra 20 câu từ bộ kiến thức AI, lưu lại câu sai và tự tạo
+          hàng đợi luyện lại cho từng người học.
+        </p>
+        <div class="intro-note">
+          <span class="note-dot"></span>
+          <span>SQL-backed learning loop</span>
+        </div>
+      </section>
+
+      <section class="login-panel panel">
+        <div class="panel-kicker">Đăng nhập học tập</div>
+        <h2>Chào mừng trở lại</h2>
+        <p class="muted">Nhập tên và trả lời câu hỏi xác thực để bắt đầu.</p>
+
+        <form id="login-form" class="stack-form">
+          <label class="field-label" for="display-name">Tên người học</label>
+          <input
+            id="display-name"
+            name="display_name"
+            class="text-input"
+            type="text"
+            minlength="2"
+            maxlength="80"
+            placeholder="Ví dụ: Nguyễn Văn An"
+            autocomplete="name"
+            required
+          />
+
+          <fieldset class="gate-fieldset">
+            <legend class="field-label">AI mới là vua?</legend>
+            <p class="gate-hint">Chọn một đáp án để mở khu vực ôn tập.</p>
+            <div class="gate-options">
+              <label class="gate-option">
+                <input type="radio" name="gate_answer" value="1" required />
+                <span><b>1</b> Huy</span>
+              </label>
+              <label class="gate-option">
+                <input type="radio" name="gate_answer" value="2" />
+                <span><b>2</b> Nghĩa</span>
+              </label>
+              <label class="gate-option">
+                <input type="radio" name="gate_answer" value="3" />
+                <span><b>3</b> Nam</span>
+              </label>
+              <label class="gate-option">
+                <input type="radio" name="gate_answer" value="4" />
+                <span><b>4</b> Tuyên</span>
+              </label>
+            </div>
+          </fieldset>
+
+          <p id="login-error" class="form-error" hidden></p>
+          <button class="button button-primary button-wide" type="submit">
+            Vào khu vực học tập
+            <span aria-hidden="true">→</span>
+          </button>
+        </form>
+        <p class="security-note"><span>⌁</span> Dữ liệu bài làm được lưu riêng theo tên người học.</p>
+      </section>
+    </main>
+
+    <div id="app-view" class="app-shell" hidden>
+      <aside class="sidebar">
+        <div class="sidebar-brand">
+          <div class="brand-mark small" aria-hidden="true">A<span>I</span></div>
+          <div>
+            <strong>AI20K</strong>
+            <span>QUIZ LAB</span>
+          </div>
+        </div>
+
+        <nav class="main-nav" aria-label="Điều hướng chính">
+          <p class="nav-label">Workspace</p>
+          <button class="nav-item is-active" data-view="dashboard">
+            <span class="nav-icon">⌂</span><span>Tổng quan</span>
+          </button>
+          <button class="nav-item" data-view="quiz">
+            <span class="nav-icon">□</span><span>Bài kiểm tra 20 câu</span>
+          </button>
+          <button class="nav-item" data-view="wrong">
+            <span class="nav-icon">↻</span><span>Luyện câu sai</span>
+            <span id="sidebar-wrong-count" class="nav-count">0</span>
+          </button>
+        </nav>
+
+        <div class="sidebar-bottom">
+          <div class="system-status">
+            <span class="status-dot"></span>
+            <div><strong>SQLite online</strong><span>Local learning store</span></div>
+          </div>
+          <button id="logout-button" class="nav-item logout-button">
+            <span class="nav-icon">↪</span><span>Đăng xuất</span>
+          </button>
+        </div>
+      </aside>
+
+      <section class="content-shell">
+        <header class="topbar">
+          <div>
+            <p class="breadcrumb">AI20K / <span id="breadcrumb-current">OVERVIEW</span></p>
+            <h1 id="page-title">Tổng quan học tập</h1>
+          </div>
+          <div class="user-chip">
+            <span id="user-initial" class="avatar">A</span>
+            <span id="user-name">Người học</span>
+          </div>
+        </header>
+
+        <main class="page-content">
+          <section id="dashboard-section" class="view-section">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">PERSONAL LEARNING LOOP</p>
+                <h2>Hôm nay học gì?</h2>
+              </div>
+              <button class="button button-primary" data-action="start-normal">Bắt đầu 20 câu <span>→</span></button>
+            </div>
+
+            <div class="metric-grid">
+              <article class="metric-card">
+                <div class="metric-label">LƯỢT LÀM BÀI</div>
+                <div id="metric-attempts" class="metric-value">0</div>
+                <div class="metric-foot">Tổng số lần hoàn thành</div>
+              </article>
+              <article class="metric-card accent-card">
+                <div class="metric-label">ĐIỂM TRUNG BÌNH</div>
+                <div id="metric-average" class="metric-value">0%</div>
+                <div class="metric-foot">Trên các bài đã nộp</div>
+              </article>
+              <article class="metric-card">
+                <div class="metric-label">CÂU ĐÃ TRẢ LỜI</div>
+                <div id="metric-answered" class="metric-value">0</div>
+                <div class="metric-foot">Từ dữ liệu SQL</div>
+              </article>
+              <article class="metric-card warning-card">
+                <div class="metric-label">CẦN LUYỆN LẠI</div>
+                <div id="metric-wrong" class="metric-value">0</div>
+                <div class="metric-foot">Câu sai đang chờ xử lý</div>
+              </article>
+            </div>
+
+            <div class="dashboard-grid">
+              <article class="action-card panel">
+                <div class="card-topline"><span class="card-index">01</span><span class="tag">MIXED SET</span></div>
+                <h3>Bài kiểm tra tổng hợp</h3>
+                <p>20 câu được chọn từ các nhánh LLM, Prompt, Agent, RAG, Data và Safety.</p>
+                <div class="action-meta"><span>20 câu hỏi</span><span>~ 10 phút</span><span>Trộn chủ đề</span></div>
+                <button class="button button-dark" data-action="start-normal">Bắt đầu bài mới <span>→</span></button>
+              </article>
+              <article class="action-card panel wrong-action-card">
+                <div class="card-topline"><span class="card-index">02</span><span class="tag tag-warm">SPACED REVIEW</span></div>
+                <h3>Kho câu hỏi cần nhớ</h3>
+                <p>Những câu trả lời sai sẽ được lưu riêng và quay lại cho đến khi bạn xử lý đúng.</p>
+                <div class="review-count"><strong id="review-card-count">0</strong><span>câu đang chờ luyện lại</span></div>
+                <button class="button button-outline" data-action="start-wrong">Luyện câu sai <span>↻</span></button>
+              </article>
+            </div>
+
+            <article class="recent-panel panel">
+              <div class="panel-heading"><div><p class="eyebrow">ACTIVITY LOG</p><h3>Lịch sử gần đây</h3></div><span class="subtle-label">Đồng bộ từ SQL</span></div>
+              <div id="recent-list" class="recent-list"><div class="empty-state compact">Chưa có bài làm. Bắt đầu bài đầu tiên của bạn.</div></div>
+            </article>
+          </section>
+
+          <section id="quiz-section" class="view-section" hidden>
+            <div class="quiz-headline">
+              <div>
+                <p id="quiz-mode-label" class="eyebrow">MIXED SET / 20 QUESTIONS</p>
+                <h2 id="quiz-title">Bài kiểm tra tổng hợp</h2>
+              </div>
+              <button class="button button-ghost" data-action="exit-quiz">Thoát bài</button>
+            </div>
+            <div class="progress-row">
+              <div class="progress-track"><span id="quiz-progress-bar"></span></div>
+              <span id="quiz-progress-text">1 / 20</span>
+            </div>
+            <article class="question-card panel">
+              <div class="question-meta"><span id="question-number" class="question-number">QUESTION 01</span><span id="question-difficulty" class="difficulty-badge">Dễ</span><span id="question-topic" class="topic-label">LLM</span></div>
+              <h3 id="question-prompt">Đang tải câu hỏi...</h3>
+              <div id="options-list" class="options-list"></div>
+              <div class="quiz-controls">
+                <button id="previous-question" class="button button-ghost" data-action="previous-question">← Câu trước</button>
+                <span id="answered-indicator" class="answered-indicator">Chưa chọn đáp án</span>
+                <button id="next-question" class="button button-primary" data-action="next-question">Câu tiếp theo →</button>
+              </div>
+            </article>
+          </section>
+
+          <section id="result-section" class="view-section" hidden>
+            <div class="result-topline">
+              <div><p class="eyebrow">ATTEMPT COMPLETE</p><h2>Kết quả bài làm</h2></div>
+              <button class="button button-primary" data-action="start-normal">Làm bài mới <span>→</span></button>
+            </div>
+            <article class="result-summary panel">
+              <div class="score-ring"><span id="result-score">0/20</span><small>điểm</small></div>
+              <div><p class="eyebrow">YOUR PERFORMANCE</p><h3 id="result-message">Bài làm đã được lưu</h3><p id="result-detail" class="muted">Các câu sai đã được đưa vào hàng đợi luyện lại.</p></div>
+              <div class="result-stat"><span>Đang chờ luyện lại</span><strong id="result-pending">0</strong></div>
+            </article>
+            <div class="panel-heading result-list-heading"><div><p class="eyebrow">ANSWER REVIEW</p><h3>Phân tích từng câu</h3></div><span class="subtle-label">Đáp án + giải thích</span></div>
+            <div id="result-list" class="result-list"></div>
+          </section>
+
+          <section id="wrong-section" class="view-section" hidden>
+            <div class="section-heading">
+              <div><p class="eyebrow">SPACED REVIEW / WRONG ANSWERS</p><h2>Luyện lại câu sai</h2></div>
+              <button class="button button-primary" data-action="start-wrong">Bắt đầu luyện <span>↻</span></button>
+            </div>
+            <article class="panel review-intro"><div class="review-icon">↻</div><div><h3>Danh sách này tự cập nhật</h3><p>Câu trả lời sai sẽ được lưu vào SQL. Mỗi lần trả lời đúng trong chế độ luyện, một lượt chờ sẽ được gỡ khỏi danh sách.</p></div><strong id="wrong-page-count">0</strong></article>
+            <article class="panel wrong-table-panel"><div class="panel-heading"><div><p class="eyebrow">REVIEW QUEUE</p><h3>Câu hỏi đang chờ</h3></div><span class="subtle-label">Ưu tiên câu sai nhiều lần</span></div><div id="wrong-list" class="wrong-list"></div></article>
+          </section>
+        </main>
+      </section>
+    </div>
+
+    <script src="/app.js" defer></script>
+  </body>
+</html>
