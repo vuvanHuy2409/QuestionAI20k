@@ -77,7 +77,10 @@
       <section class="content-shell">
         <header class="topbar">
           <div><p class="breadcrumb">AI20K / <span id="breadcrumb-current">OVERVIEW</span></p><h1 id="page-title">Tổng quan học tập</h1></div>
-          <div class="user-chip"><span id="user-initial" class="avatar">A</span><span id="user-name">Người học</span></div>
+          <div class="topbar-actions">
+            <button id="open-vip-button" class="vip-header-btn" type="button"><span class="vip-icon">👑</span><span class="vip-btn-text">Gói VIP Thủ Khoa</span></button>
+            <div class="user-chip"><span id="user-initial" class="avatar">A</span><span id="user-name">Người học</span><span id="vip-badge" class="vip-badge" hidden>👑 VIP</span></div>
+          </div>
         </header>
 
         <main class="page-content">
@@ -132,6 +135,55 @@
         <p id="payment-error" class="form-error" hidden></p>
         <button id="demo-payment-button" class="button button-primary button-wide" type="button">Mở giải thích (demo) <span>→</span></button>
         <button id="skip-payment" class="button button-ghost button-wide payment-skip" type="button">Bỏ qua, vào giải thích</button>
+      </div>
+    </div>
+
+    <!-- Modal VIP Troll (Option 2) -->
+    <div id="vip-modal" class="modal-backdrop" hidden>
+      <div class="vip-modal-box panel" role="dialog" aria-modal="true">
+        <button id="close-vip-modal" class="modal-close" type="button" aria-label="Đóng">×</button>
+        <div class="vip-badge-icon">👑</div>
+        <p class="eyebrow vip-eyebrow">MOCK TROLL GATE</p>
+        <h2 class="vip-modal-title">Gói VIP Thủ Khoa AI20K</h2>
+        <p class="vip-modal-desc muted">Đỗ môn trong sự ngỡ ngàng của giảng viên và bạn bè cùng lớp.</p>
+
+        <div class="vip-compare-grid">
+          <div class="compare-col standard-col">
+            <div class="compare-tag">Tài khoản thường (0₫)</div>
+            <ul class="compare-list">
+              <li><span>🧠</span> Tự dùng não suy nghĩ & chọn đáp án</li>
+              <li><span>❌</span> Làm sai tự chịu trách nhiệm</li>
+              <li><span>📚</span> Phải đọc hết 55 tài liệu slide bài giảng</li>
+              <li><span>⏳</span> Không có bảo hành trượt môn</li>
+            </ul>
+          </div>
+          <div class="compare-col pro-col">
+            <div class="compare-tag pro-tag">👑 VIP Thủ Khoa (5.000₫)</div>
+            <ul class="compare-list">
+              <li><span>🤖</span> <strong>AI Tâm Linh:</strong> Linh tính mách bảo đáp án</li>
+              <li><span>🎓</span> <strong>Auto Đỗ:</strong> Tâm thế tự tin khi thi cử</li>
+              <li><span>⚡</span> <strong>Support 24/7:</strong> Tác giả động viên tinh thần</li>
+              <li><span>🛡️</span> <strong>Bảo hiểm:</strong> Được an ủi khi không hiểu bài</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="qr-wrap vip-qr-wrap">
+          <img id="vip-vietqr-image" class="qr-image" alt="Mã QR VietQR MB Bank VIP" />
+        </div>
+
+        <div class="payment-account vip-account-box" aria-label="Thông tin chuyển khoản VIP">
+          <div class="payment-account-row"><span>Ngân hàng</span><strong>MB Bank</strong></div>
+          <div class="payment-account-row"><span>Chủ tài khoản</span><strong id="vip-qr-name">Vũ Văn Huy</strong></div>
+          <div class="payment-account-row"><span>Số tài khoản</span><strong id="vip-qr-number">0339761204</strong></div>
+          <div class="payment-account-row"><span>Số tiền</span><strong id="vip-qr-amount">5.000₫</strong></div>
+          <div class="payment-account-row"><span>Nội dung CK</span><strong id="vip-qr-content">VIP AI20K</strong></div>
+        </div>
+
+        <div class="vip-modal-actions">
+          <button id="activate-vip-button" class="button button-primary button-wide vip-action-btn" type="button">⚡ Đã chuyển 5.000₫ (Kích hoạt VIP ngay) <span>→</span></button>
+          <button id="skip-vip-button" class="button button-ghost button-wide" type="button">Thôi em nghèo, em tự học bằng thực lực</button>
+        </div>
       </div>
     </div>
 

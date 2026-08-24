@@ -72,10 +72,12 @@ async function api(action, options = {}) {
   return payload;
 }
 
-function buildVietQrUrl() {
+function buildVietQrUrl(customInfo = null, customAmount = null) {
+  const amount = customAmount ?? PAYMENT_QR.amount;
+  const info = customInfo ?? PAYMENT_QR.contentQr;
   const params = new URLSearchParams({
-    amount: String(PAYMENT_QR.amount),
-    addInfo: PAYMENT_QR.contentQr,
+    amount: String(amount),
+    addInfo: info,
     accountName: PAYMENT_QR.accountName,
   });
   return `https://img.vietqr.io/image/${PAYMENT_QR.bankId}-${PAYMENT_QR.accountNo}-${PAYMENT_QR.template}.png?${params.toString()}`;
@@ -93,12 +95,46 @@ function openPaymentModal() {
   $("#payment-modal").hidden = false;
 }
 
+function openVipModal() {
+  const username = (state.user?.username || "AI20K").toUpperCase();
+  const info = `VIP AI20K ${username}`;
+  const image = $("#vip-vietqr-image");
+  image.src = buildVietQrUrl(info, 5000);
+  image.alt = `VietQR MB Bank VIP ${PAYMENT_QR.displayName} 5.000₫`;
+  $("#vip-qr-name").textContent = PAYMENT_QR.displayName;
+  $("#vip-qr-number").textContent = PAYMENT_QR.accountNo;
+  $("#vip-qr-amount").textContent = "5.000₫";
+  $("#vip-qr-content").textContent = info;
+  $("#vip-modal").hidden = false;
+}
+
+function closeVipModal() {
+  $("#vip-modal").hidden = true;
+}
+
+function activateMockVip() {
+  localStorage.setItem("ai20k_is_vip", "true");
+  const badge = $("#vip-badge");
+  if (badge) badge.hidden = false;
+  closeVipModal();
+  showToast("🎉 Chúc mừng bạn đã lên VIP thành công! Giờ thì hãy tự tin làm bài bằng chính thực lực nhé 🚀");
+}
+
+function skipVip() {
+  closeVipModal();
+  showToast("Đã đóng gói VIP. Hãy tự tin làm bài bằng thực lực!");
+}
+
 function setLoggedIn(user) {
   state.user = user;
   $("#login-view").hidden = true;
   $("#app-view").hidden = false;
   $("#user-name").textContent = user.display_name;
   $("#user-initial").textContent = user.display_name.charAt(0).toUpperCase();
+  const badge = $("#vip-badge");
+  if (badge) {
+    badge.hidden = localStorage.getItem("ai20k_is_vip") !== "true";
+  }
   loadDashboard();
 }
 
@@ -496,6 +532,11 @@ $("#logout-button").addEventListener("click", handleLogout);
 $("#close-payment").addEventListener("click", () => { $("#payment-modal").hidden = true; });
 $("#demo-payment-button").addEventListener("click", confirmDemoPayment);
 $("#skip-payment").addEventListener("click", skipPayment);
+
+$("#open-vip-button")?.addEventListener("click", openVipModal);
+$("#close-vip-modal")?.addEventListener("click", closeVipModal);
+$("#activate-vip-button")?.addEventListener("click", activateMockVip);
+$("#skip-vip-button")?.addEventListener("click", skipVip);
 
 async function bootstrap() {
   if (!state.token) return;

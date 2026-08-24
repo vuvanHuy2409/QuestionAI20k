@@ -54,6 +54,22 @@ cổng thanh toán và không thu tiền. Modal có QR VietQR MB Bank cho tài k
 thích mà không cần xác nhận giao dịch. Gate tự tắt sau ngày `26/08/2026` theo
 timezone `Asia/Ho_Chi_Minh`; sau thời điểm đó API trả phần giải thích trực tiếp.
 
+## Triển khai trên AWS EC2
+
+Dự án hỗ trợ chạy trực tiếp trên AWS EC2 (Ubuntu 24.04 / `t3.micro` Free Tier) thông qua Docker Compose:
+
+1. Khởi chạy instance EC2 trên AWS (khu vực `ap-southeast-1`).
+2. Mở Security Group cho các cổng `80` (HTTP), `8082` và `22` (SSH).
+3. Đính kèm script `deploy/user-data.sh` khi tạo instance, hoặc SSH vào máy chủ và chạy:
+
+```bash
+git clone -b deploy https://github.com/vuvanHuy2409/QuestionAI20k.git
+cd QuestionAI20k/quiz-system-php
+docker compose up --build -d
+```
+
+Ứng dụng sẽ hoạt động tại `http://<YOUR_EC2_PUBLIC_IP>`.
+
 ## Deploy Vercel + MySQL
 
 Vercel không cung cấp MySQL tích hợp cho project này, vì vậy cần một MySQL
