@@ -17,10 +17,69 @@ function env_first(array $names, ?string $default = null): ?string
     return $default;
 }
 
+function is_sqlite_configured(): bool
+{
+    $driver = strtolower((string) env_first(['DB_DRIVER', 'DATABASE_DRIVER'], ''));
+    if ($driver === 'sqlite') {
+        return true;
+    }
+    if ($driver === 'mysql') {
+        return false;
+    }
+    // If no explicit driver is set, prefer SQLite unless MYSQL_HOST or MYSQL_URL is explicitly set
+    $hasMysqlEnv = env_first(['MYSQL_URL', 'DATABASE_URL', 'MYSQL_HOST']) !== null;
+    return !$hasMysqlEnv;
+}
+
+function db_driver(): string
+{
+    return is_sqlite_configured() ? 'sqlite' : 'mysql';
+}
+
+function init_sqlite_schema(PDO $pdo): void
+{
+    $tableCount = (int) $pdo->query("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='questions'")->fetchColumn();
+    if ($tableCount > 0) {
+        return;
+    }
+
+    $baseDir = dirname(__DIR__);
+    $schemaPath = $baseDir . '/database/sqlite_schema.sql';
+    $seedPath = $baseDir . '/database/sqlite_seed.sql';
+
+    if (file_exists($schemaPath)) {
+        $pdo->exec(file_get_contents($schemaPath));
+    }
+    if (file_exists($seedPath)) {
+        $pdo->exec(file_get_contents($seedPath));
+    }
+}
+
 function database(): PDO
 {
     static $pdo = null;
     if ($pdo instanceof PDO) {
+        return $pdo;
+    }
+
+    if (is_sqlite_configured()) {
+        $dbPath = env_first(['SQLITE_PATH', 'DATABASE_PATH'], dirname(__DIR__) . '/data/quiz.db');
+        $dbDir = dirname($dbPath);
+        if (!is_dir($dbDir)) {
+            mkdir($dbDir, 0777, true);
+        }
+
+        $dsn = 'sqlite:' . $dbPath;
+        $pdo = new PDO($dsn, null, null, [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+            PDO::ATTR_EMULATE_PREPARES => false,
+        ]);
+        $pdo->exec('PRAGMA foreign_keys = ON;');
+        $pdo->exec('PRAGMA journal_mode = WAL;');
+        $pdo->exec('PRAGMA busy_timeout = 5000;');
+
+        init_sqlite_schema($pdo);
         return $pdo;
     }
 

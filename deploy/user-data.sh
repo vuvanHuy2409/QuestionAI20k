@@ -3,6 +3,16 @@ set -euo pipefail
 
 echo "=== Starting AI20K Deployment on AWS EC2 ==="
 
+# Setup 2GB Swap if not exists to protect EC2 t3.micro against OOM
+if [ ! -f /swapfile ]; then
+  echo "=== Configuring 2GB Swap File ==="
+  fallocate -l 2G /swapfile || dd if=/dev/zero of=/swapfile bs=1M count=2048
+  chmod 600 /swapfile
+  mkswap /swapfile
+  swapon /swapfile
+  echo '/swapfile none swap sw 0 0' >> /etc/fstab
+fi
+
 # Update package repositories
 apt-get update -y
 apt-get install -y ca-certificates curl gnupg git python3
@@ -35,7 +45,7 @@ git fetch origin deploy
 git checkout deploy
 git pull origin deploy
 
-# Run Docker Compose
+# Run Lightweight SQLite Docker Compose
 cd /opt/app/QuestionAI20k/quiz-system-php
 docker compose down || true
 docker compose up --build -d

@@ -16,7 +16,7 @@ try {
         $questionCount = (int) $pdo->query('SELECT COUNT(*) FROM questions')->fetchColumn();
         json_response([
             'status' => 'ok',
-            'database' => 'mysql',
+            'database' => db_driver(),
             'questions' => $questionCount,
             'payment_demo_active' => payment_demo_active(),
         ]);
@@ -95,7 +95,7 @@ try {
                 'last_login_at' => now_sql(),
             ]);
         } catch (PDOException $exception) {
-            if ($exception->getCode() === '23000') {
+            if ($exception->getCode() === '23000' || str_contains($exception->getMessage(), 'UNIQUE')) {
                 fail_response('Tên tài khoản đã tồn tại.', 409);
             }
             throw $exception;
@@ -312,15 +312,27 @@ try {
                 ]);
 
                 if ($isCorrect) {
-                    $progress = $pdo->prepare(
-                        'INSERT INTO user_question_progress
-                           (user_id, question_id, correct_count, last_answered_at)
-                         VALUES (:user_id, :question_id, 1, :last_answered_at)
-                         ON DUPLICATE KEY UPDATE
-                           correct_count = correct_count + 1,
-                           pending_count = GREATEST(pending_count - 1, 0),
-                           last_answered_at = VALUES(last_answered_at)'
-                    );
+                    if (db_driver() === 'sqlite') {
+                        $progress = $pdo->prepare(
+                            'INSERT INTO user_question_progress
+                               (user_id, question_id, correct_count, last_answered_at)
+                             VALUES (:user_id, :question_id, 1, :last_answered_at)
+                             ON CONFLICT(user_id, question_id) DO UPDATE SET
+                               correct_count = user_question_progress.correct_count + 1,
+                               pending_count = MAX(user_question_progress.pending_count - 1, 0),
+                               last_answered_at = excluded.last_answered_at'
+                        );
+                    } else {
+                        $progress = $pdo->prepare(
+                            'INSERT INTO user_question_progress
+                               (user_id, question_id, correct_count, last_answered_at)
+                             VALUES (:user_id, :question_id, 1, :last_answered_at)
+                             ON DUPLICATE KEY UPDATE
+                               correct_count = correct_count + 1,
+                               pending_count = GREATEST(pending_count - 1, 0),
+                               last_answered_at = VALUES(last_answered_at)'
+                        );
+                    }
                     $progress->execute([
                         'user_id' => $user['id'],
                         'question_id' => $questionId,
@@ -340,16 +352,30 @@ try {
                         'correct_option' => $question['correct_option'],
                         'answered_at' => $now,
                     ]);
-                    $progress = $pdo->prepare(
-                        'INSERT INTO user_question_progress
-                           (user_id, question_id, wrong_count, pending_count, last_answered_at, last_wrong_at)
-                         VALUES (:user_id, :question_id, 1, 1, :last_answered_at, :last_wrong_at)
-                         ON DUPLICATE KEY UPDATE
-                           wrong_count = wrong_count + 1,
-                           pending_count = pending_count + 1,
-                           last_answered_at = VALUES(last_answered_at),
-                           last_wrong_at = VALUES(last_wrong_at)'
-                    );
+
+                    if (db_driver() === 'sqlite') {
+                        $progress = $pdo->prepare(
+                            'INSERT INTO user_question_progress
+                               (user_id, question_id, wrong_count, pending_count, last_answered_at, last_wrong_at)
+                             VALUES (:user_id, :question_id, 1, 1, :last_answered_at, :last_wrong_at)
+                             ON CONFLICT(user_id, question_id) DO UPDATE SET
+                               wrong_count = user_question_progress.wrong_count + 1,
+                               pending_count = user_question_progress.pending_count + 1,
+                               last_answered_at = excluded.last_answered_at,
+                               last_wrong_at = excluded.last_wrong_at'
+                        );
+                    } else {
+                        $progress = $pdo->prepare(
+                            'INSERT INTO user_question_progress
+                               (user_id, question_id, wrong_count, pending_count, last_answered_at, last_wrong_at)
+                             VALUES (:user_id, :question_id, 1, 1, :last_answered_at, :last_wrong_at)
+                             ON DUPLICATE KEY UPDATE
+                               wrong_count = wrong_count + 1,
+                               pending_count = pending_count + 1,
+                               last_answered_at = VALUES(last_answered_at),
+                               last_wrong_at = VALUES(last_wrong_at)'
+                        );
+                    }
                     $progress->execute([
                         'user_id' => $user['id'],
                         'question_id' => $questionId,
@@ -435,10 +461,10 @@ try {
                 'question' => question_public($pdo, $question, true),
             ]);
         }
-        $unlock = $pdo->prepare(
-            'INSERT IGNORE INTO explanation_unlocks (user_id, question_id, unlock_type, unlocked_at)
-             VALUES (:user_id, :question_id, :unlock_type, :unlocked_at)'
-        );
+        $unlockSql = (db_driver() === 'sqlite')
+            ? 'INSERT OR IGNORE INTO explanation_unlocks (user_id, question_id, unlock_type, unlocked_at) VALUES (:user_id, :question_id, :unlock_type, :unlocked_at)'
+            : 'INSERT IGNORE INTO explanation_unlocks (user_id, question_id, unlock_type, unlocked_at) VALUES (:user_id, :question_id, :unlock_type, :unlocked_at)';
+        $unlock = $pdo->prepare($unlockSql);
         $unlock->execute([
             'user_id' => $user['id'],
             'question_id' => $questionId,
@@ -455,5 +481,5 @@ try {
     fail_response('Không tìm thấy action.', 404);
 } catch (Throwable $exception) {
     error_log($exception->getMessage());
-    fail_response('Backend PHP/MySQL chưa sẵn sàng hoặc có lỗi cấu hình.', 500);
+    fail_response('Backend PHP chưa sẵn sàng hoặc có lỗi cấu hình: ' . $exception->getMessage(), 500);
 }
