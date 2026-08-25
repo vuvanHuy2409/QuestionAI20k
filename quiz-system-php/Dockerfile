@@ -6,8 +6,9 @@ RUN a2enmod rewrite
 COPY public/ /var/www/html/
 COPY api/ /var/www/html/api/
 COPY database/ /var/www/html/database/
+COPY data/ /var/www/html/data/
 
-# Create data directory for SQLite database
-RUN mkdir -p /var/www/html/data && chown -R www-data:www-data /var/www/html
+# Create data directory permissions
+RUN mkdir -p /var/www/html/data && chown -R www-data:www-data /var/www/html && chmod -R 777 /var/www/html/data
 
 EXPOSE 80

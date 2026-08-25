@@ -46,17 +46,6 @@ function execute_sqlite_script(PDO $pdo, string $filepath): void
         return;
     }
 
-    if (class_exists('SQLite3')) {
-        $dbFile = (string) $pdo->query('PRAGMA database_list')->fetchColumn(2);
-        if ($dbFile !== '') {
-            $sqlite = new SQLite3($dbFile);
-            $sqlite->busyTimeout(5000);
-            $sqlite->exec($content);
-            $sqlite->close();
-            return;
-        }
-    }
-
     $queries = preg_split('/;\s*(\r\n|\n|\r)/', $content);
     if ($queries === false) {
         return;
@@ -64,8 +53,13 @@ function execute_sqlite_script(PDO $pdo, string $filepath): void
 
     foreach ($queries as $query) {
         $query = trim($query);
-        if ($query !== '') {
+        if ($query === '' || str_starts_with($query, '--')) {
+            continue;
+        }
+        try {
             $pdo->exec($query);
+        } catch (Throwable $e) {
+            error_log("SQLite Script Error: " . $e->getMessage() . " in query: " . substr($query, 0, 80));
         }
     }
 }

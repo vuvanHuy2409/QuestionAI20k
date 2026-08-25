@@ -8,9 +8,4 @@ services:
     ports:
       - "80:80"
       - "8082:80"
-    volumes:
-      - quiz_data:/var/www/html/data
     restart: unless-stopped
-
-volumes:
-  quiz_data:
