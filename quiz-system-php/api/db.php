@@ -36,6 +36,40 @@ function db_driver(): string
     return is_sqlite_configured() ? 'sqlite' : 'mysql';
 }
 
+function execute_sqlite_script(PDO $pdo, string $filepath): void
+{
+    if (!file_exists($filepath)) {
+        return;
+    }
+    $content = file_get_contents($filepath);
+    if ($content === false || trim($content) === '') {
+        return;
+    }
+
+    if (class_exists('SQLite3')) {
+        $dbFile = (string) $pdo->query('PRAGMA database_list')->fetchColumn(2);
+        if ($dbFile !== '') {
+            $sqlite = new SQLite3($dbFile);
+            $sqlite->busyTimeout(5000);
+            $sqlite->exec($content);
+            $sqlite->close();
+            return;
+        }
+    }
+
+    $queries = preg_split('/;\s*(\r\n|\n|\r)/', $content);
+    if ($queries === false) {
+        return;
+    }
+
+    foreach ($queries as $query) {
+        $query = trim($query);
+        if ($query !== '') {
+            $pdo->exec($query);
+        }
+    }
+}
+
 function init_sqlite_schema(PDO $pdo): void
 {
     $tableCount = (int) $pdo->query("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='questions'")->fetchColumn();
@@ -47,12 +81,8 @@ function init_sqlite_schema(PDO $pdo): void
     $schemaPath = $baseDir . '/database/sqlite_schema.sql';
     $seedPath = $baseDir . '/database/sqlite_seed.sql';
 
-    if (file_exists($schemaPath)) {
-        $pdo->exec(file_get_contents($schemaPath));
-    }
-    if (file_exists($seedPath)) {
-        $pdo->exec(file_get_contents($seedPath));
-    }
+    execute_sqlite_script($pdo, $schemaPath);
+    execute_sqlite_script($pdo, $seedPath);
 }
 
 function database(): PDO
