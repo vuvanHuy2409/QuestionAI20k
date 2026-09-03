@@ -52,8 +52,8 @@ Người dùng cũng có thể tạo tài khoản mới trong giao diện.
 ## Workspace và luồng sản phẩm
 
 SQL có thêm `workspaces` và `workspace_items`. Seed tạo workspace
-`bài thi thi khoá 2` và lưu nguyên văn 2 câu hỏi cùng phần trả lời/giải thích
-từ link chia sẻ, kèm một mục tham khảo chứa phần tóm tắt 4 metric RAG. Bộ câu
+`bài thi thi khoá 2` và lưu nguyên văn 2 cặp câu hỏi và câu trả lời
+từ link chia sẻ. Bộ câu
 hỏi 300 câu hiện có được liên kết vào workspace `AI20K — Câu hỏi hiện có`, nên
 các câu cũ vẫn giữ dạng trắc nghiệm nhưng có thể xem đáp án, giải thích và
 thuật ngữ theo cùng một mẫu. Hai nguồn được tách riêng: bài thi 300 câu chỉ

@@ -217,7 +217,7 @@ function renderWorkspaceItems(items) {
             <div class="workspace-item-head"><span class="question-number">${heading}</span><span class="topic-label">${escapeHTML(item.topic || "AI20K")}</span>${item.difficulty ? `<span class="difficulty-badge">${escapeHTML(item.difficulty)}</span>` : ""}</div>
             <h3>${escapeHTML(item.prompt)}</h3>
             ${options}
-            ${answer ? `<div class="workspace-block workspace-answer"><strong>${isMcq ? "Đáp án đúng" : "Câu trả lời / giải thích"}</strong><p class="workspace-text">${escapeHTML(answer)}</p></div>` : ""}
+            ${answer ? `<div class="workspace-block workspace-answer"><strong>${isMcq ? "Đáp án đúng" : "Câu trả lời"}</strong><p class="workspace-text">${escapeHTML(answer)}</p></div>` : ""}
             ${explanation}
             ${item.terms ? `<div class="workspace-block workspace-terms"><strong>Thuật ngữ</strong><p class="workspace-text">${formatTerms(item.terms)}</p></div>` : ""}
             ${source}
