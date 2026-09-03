@@ -1535,6 +1535,8 @@ VALUES
 (300, 'D', 'Xóa trace vì đã tìm được lỗi')
 ON DUPLICATE KEY UPDATE option_text = VALUES(option_text);
 
+SET NAMES utf8mb4;
+
 INSERT INTO workspaces (id, slug, name, description, kind)
 VALUES
   (1, 'ai20k-cau-hoi-cu', 'AI20K — Câu hỏi hiện có', 'Bộ câu hỏi trắc nghiệm AI20K hiện có, giữ nguyên đáp án và giải thích.', 'quiz'),

@@ -1,3 +1,5 @@
+const LINKED_WORKSPACE_SLUG = "bai-thi-thi-khoa-2";
+
 const state = {
   token: localStorage.getItem("ai20k_quiz_token"),
   user: null,
@@ -82,19 +84,26 @@ function setView(view) {
     quiz: ["Bài kiểm tra", "QUIZ / 20 QUESTIONS"],
     result: ["Kết quả bài làm", "RESULTS"],
     wrong: ["Luyện lại câu sai", "SPACED REVIEW"],
+    "linked-workspace": ["Bài thi khoá 2", "COURSE 2 EXAM"],
   };
   const [title, breadcrumb] = titles[view] || titles.dashboard;
   $("#page-title").textContent = title;
   $("#breadcrumb-current").textContent = breadcrumb;
+  const sectionView = view === "linked-workspace" ? "workspace" : view;
   $$(".view-section").forEach((section) => {
-    section.hidden = section.id !== `${view}-section`;
+    section.hidden = section.id !== `${sectionView}-section`;
   });
   $$(".nav-item[data-view]").forEach((item) => {
     item.classList.toggle("is-active", item.dataset.view === view);
   });
+  const isWorkspaceView = view === "workspace" || view === "linked-workspace";
   $$(".workspace-nav-item").forEach((item) => {
-    item.classList.toggle("is-active", view === "workspace" && Number(item.dataset.workspaceId) === state.selectedWorkspaceId);
+    item.classList.toggle("is-active", isWorkspaceView && view === "workspace" && Number(item.dataset.workspaceId) === state.selectedWorkspaceId);
   });
+  const linked = view === "linked-workspace";
+  $("#workspace-eyebrow").textContent = linked ? "COURSE 2 EXAM / LINKED Q&A" : "WORKSPACE LIBRARY";
+  $("#workspace-library-title").textContent = linked ? "Bài thi khoá 2" : "Kho học tập";
+  $(".workspace-select-wrap").hidden = linked;
 }
 
 async function loadDashboard() {
@@ -115,34 +124,34 @@ async function loadDashboard() {
 
 function renderWorkspaces(workspaces) {
   state.workspaces = workspaces;
-  if (!state.selectedWorkspaceId || !workspaces.some((workspace) => workspace.id === state.selectedWorkspaceId)) {
-    const preferred = workspaces.find((workspace) => workspace.slug === "bai-thi-thi-khoa-2");
-    state.selectedWorkspaceId = preferred?.id || workspaces[0]?.id || null;
+  const libraryWorkspaces = workspaces.filter((workspace) => workspace.slug !== LINKED_WORKSPACE_SLUG);
+  if (!state.selectedWorkspaceId || !libraryWorkspaces.some((workspace) => workspace.id === state.selectedWorkspaceId)) {
+    state.selectedWorkspaceId = libraryWorkspaces[0]?.id || workspaces[0]?.id || null;
   }
 
   const nav = $("#workspace-nav-list");
-  nav.innerHTML = workspaces.length
-    ? workspaces
+  nav.innerHTML = libraryWorkspaces.length
+    ? libraryWorkspaces
         .map(
           (workspace) => `<button type="button" class="workspace-nav-item ${workspace.id === state.selectedWorkspaceId && state.view === "workspace" ? "is-active" : ""}" data-workspace-id="${workspace.id}">
             <span class="workspace-nav-dot"></span><span>${escapeHTML(workspace.name)}</span><small>${workspace.item_count}</small>
           </button>`,
         )
         .join("")
-    : '<span class="workspace-nav-empty">Chưa có workspace</span>';
+    : '<span class="workspace-nav-empty">Chưa có workspace gốc</span>';
 
   const select = $("#workspace-select");
-  select.innerHTML = workspaces
+  select.innerHTML = libraryWorkspaces
     .map((workspace) => `<option value="${workspace.id}">${escapeHTML(workspace.name)} · ${workspace.item_count} nội dung</option>`)
     .join("");
   select.value = state.selectedWorkspaceId ? String(state.selectedWorkspaceId) : "";
 }
 
-async function openWorkspace(workspaceId = state.selectedWorkspaceId) {
+async function openWorkspace(workspaceId = state.selectedWorkspaceId, view = "workspace") {
   const id = Number(workspaceId);
   if (!id) return;
   state.selectedWorkspaceId = id;
-  setView("workspace");
+  setView(view);
   $("#workspace-items").innerHTML = '<div class="empty-state compact">Đang tải nội dung workspace...</div>';
   const workspace = state.workspaces.find((item) => item.id === id);
   if (workspace) renderWorkspaceSummary(workspace);
@@ -154,6 +163,24 @@ async function openWorkspace(workspaceId = state.selectedWorkspaceId) {
     showToast(error.message, true);
     $("#workspace-items").innerHTML = '<div class="empty-state compact">Không tải được nội dung workspace.</div>';
   }
+}
+
+function openLinkedWorkspace() {
+  const workspace = state.workspaces.find((item) => item.slug === LINKED_WORKSPACE_SLUG);
+  if (!workspace) {
+    showToast("Chưa tìm thấy phần Bài thi khoá 2 trong SQL.", true);
+    return;
+  }
+  openWorkspace(workspace.id, "linked-workspace");
+}
+
+function openWorkspaceLibrary() {
+  const workspace = state.workspaces.find((item) => item.slug !== LINKED_WORKSPACE_SLUG);
+  if (!workspace) {
+    showToast("Chưa tìm thấy workspace câu hỏi gốc trong SQL.", true);
+    return;
+  }
+  openWorkspace(workspace.id, "workspace");
 }
 
 function renderWorkspaceSummary(workspace) {
@@ -405,7 +432,9 @@ document.addEventListener("click", (event) => {
       setView("dashboard");
       loadDashboard();
     } else if (view === "workspace") {
-      openWorkspace();
+      openWorkspaceLibrary();
+    } else if (view === "linked-workspace") {
+      openLinkedWorkspace();
     } else if (view === "quiz") {
       startQuiz("normal");
     } else if (view === "wrong") {

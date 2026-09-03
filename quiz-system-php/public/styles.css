@@ -446,6 +446,20 @@ button:disabled {
   font-weight: 720;
 }
 
+.nav-item-course {
+  margin-top: 6px;
+  border-color: #e4dcff;
+  color: #5b4a91;
+  background: #fbf9ff;
+}
+
+.nav-item-course:hover,
+.nav-item-course.is-active {
+  border-color: #d8caff;
+  color: #50358e;
+  background: #f1edff;
+}
+
 .workspace-nav-list {
   display: grid;
   gap: 4px;

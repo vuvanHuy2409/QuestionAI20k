@@ -66,6 +66,7 @@
           <p class="nav-label">Workspace</p>
           <button class="nav-item is-active" data-view="dashboard"><span class="nav-icon">⌂</span><span>Tổng quan</span></button>
           <button class="nav-item" data-view="workspace"><span class="nav-icon">▦</span><span>Kho workspace</span></button>
+          <button class="nav-item nav-item-course" data-view="linked-workspace"><span class="nav-icon">✦</span><span>Bài thi khoá 2</span></button>
           <button class="nav-item" data-view="quiz"><span class="nav-icon">□</span><span>Bắt đầu ôn tập</span></button>
           <button class="nav-item" data-view="wrong"><span class="nav-icon">↻</span><span>Luyện câu sai</span><span id="sidebar-wrong-count" class="nav-count">0</span></button>
           <div id="workspace-nav-list" class="workspace-nav-list" aria-label="Danh sách workspace"></div>
@@ -99,7 +100,7 @@
 
           <section id="workspace-section" class="view-section" hidden>
             <div class="section-heading workspace-heading">
-              <div><p class="eyebrow">WORKSPACE LIBRARY</p><h2>Kho học tập</h2></div>
+              <div><p id="workspace-eyebrow" class="eyebrow">WORKSPACE LIBRARY</p><h2 id="workspace-library-title">Kho học tập</h2></div>
               <label class="workspace-select-wrap"><span class="field-label">Chọn workspace</span><select id="workspace-select" class="text-input" aria-label="Chọn workspace"></select></label>
             </div>
             <article id="workspace-summary" class="panel workspace-summary">

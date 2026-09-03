@@ -26,6 +26,17 @@ docker exec -i ai20k-mysql mysql -uai20k_user -pai20k_local_password -D ai20k_qu
 Script tự động giữ phần seed workspace từ `database/workspace_seed.sql` khi
 tạo lại ngân hàng 300 câu.
 
+`database/workspace_seed.sql` có thể chạy độc lập và đã bật `SET NAMES utf8mb4`.
+Nếu workspace trên database cũ đang hiện kiểu chữ lỗi như `CÃ¢u`, chạy lại file
+này để ghi lại tên, câu hỏi và phần giải thích bằng UTF-8 đúng:
+
+```bash
+mysql -h YOUR_HOST -P 3306 -u YOUR_USER -p YOUR_DATABASE < database/workspace_seed.sql
+```
+
+API cũng giữ một lớp tương thích để hiển thị đúng dữ liệu workspace đã từng bị
+nhập sai mã hóa trong lúc chờ chạy lại seed.
+
 Parser kiểm tra đủ câu 1–300, mỗi câu có đúng 4 đáp án, đáp án đúng, giải thích,
 thuật ngữ, chủ đề và mức độ trước khi ghi seed. Giao diện chọn 20 câu mỗi lượt;
 toàn bộ 300 câu được lưu trong MySQL để mở rộng luồng luyện tập sau này.
@@ -45,7 +56,8 @@ SQL có thêm `workspaces` và `workspace_items`. Seed tạo workspace
 từ link chia sẻ, kèm một mục tham khảo chứa phần tóm tắt 4 metric RAG. Bộ câu
 hỏi 300 câu hiện có được liên kết vào workspace `AI20K — Câu hỏi hiện có`, nên
 các câu cũ vẫn giữ dạng trắc nghiệm nhưng có thể xem đáp án, giải thích và
-thuật ngữ theo cùng một mẫu.
+thuật ngữ theo cùng một mẫu. Hai nguồn được tách riêng: bài thi 300 câu chỉ
+đọc từ bảng `questions`, còn nội dung link chỉ mở qua nút `Bài thi khoá 2`.
 
 ## Luồng sản phẩm
 

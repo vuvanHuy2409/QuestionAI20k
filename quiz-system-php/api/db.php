@@ -53,8 +53,28 @@ function database(): PDO
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
         PDO::ATTR_EMULATE_PREPARES => false,
+        PDO::MYSQL_ATTR_INIT_COMMAND => 'SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci',
     ]);
     return $pdo;
+}
+
+function repair_mojibake(string $value): string
+{
+    if ($value === '' || preg_match('/(?:Ã|Â|Ä|Å|Æ|á»|áº|â€|ï¿|ð)/u', $value) !== 1) {
+        return $value;
+    }
+
+    $candidate = @iconv('UTF-8', 'Windows-1252//IGNORE', $value);
+    if ($candidate === false || $candidate === '' || preg_match('//u', $candidate) !== 1) {
+        return $value;
+    }
+
+    $score = static fn (string $text): int => preg_match_all(
+        '/(?:Ã|Â|Ä|Å|Æ|á»|áº|â€|ï¿|ð)/u',
+        $text
+    ) ?: 0;
+
+    return $score($candidate) < $score($value) ? $candidate : $value;
 }
 
 function json_response(array $payload, int $status = 200): never
@@ -207,10 +227,10 @@ function workspace_public(array $workspace): array
 {
     return [
         'id' => (int) $workspace['id'],
-        'slug' => $workspace['slug'],
-        'name' => $workspace['name'],
-        'description' => $workspace['description'],
-        'kind' => $workspace['kind'],
+        'slug' => repair_mojibake((string) $workspace['slug']),
+        'name' => repair_mojibake((string) $workspace['name']),
+        'description' => repair_mojibake((string) $workspace['description']),
+        'kind' => repair_mojibake((string) $workspace['kind']),
         'item_count' => (int) $workspace['item_count'],
         'mcq_count' => (int) $workspace['mcq_count'],
         'qa_count' => (int) $workspace['qa_count'],
@@ -238,15 +258,15 @@ function workspace_item_public(PDO $pdo, array $item, ?array $question = null): 
         'id' => (int) $item['id'],
         'item_id' => (int) $item['id'],
         'workspace_id' => (int) $item['workspace_id'],
-        'item_type' => $item['item_type'],
+        'item_type' => repair_mojibake((string) $item['item_type']),
         'sort_order' => (int) $item['sort_order'],
-        'topic' => $item['topic'],
-        'difficulty' => $item['difficulty'],
-        'prompt' => $item['prompt'],
-        'answer' => $item['answer'],
-        'explanation' => $item['explanation'],
-        'terms' => $item['terms'],
-        'source_url' => $item['source_url'],
-        'source_title' => $item['source_title'],
+        'topic' => repair_mojibake((string) $item['topic']),
+        'difficulty' => repair_mojibake((string) $item['difficulty']),
+        'prompt' => repair_mojibake((string) $item['prompt']),
+        'answer' => repair_mojibake((string) $item['answer']),
+        'explanation' => repair_mojibake((string) $item['explanation']),
+        'terms' => repair_mojibake((string) $item['terms']),
+        'source_url' => repair_mojibake((string) $item['source_url']),
+        'source_title' => repair_mojibake((string) $item['source_title']),
     ];
 }

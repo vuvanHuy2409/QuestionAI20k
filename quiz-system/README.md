@@ -37,9 +37,10 @@ docker compose down
   nội dung hỏi–đáp/giải thích đã lấy từ link chia sẻ.
 - `data/quiz.db`: tự tạo khi chạy server, không cần commit thủ công.
 
-Trong giao diện, mục `Kho workspace` hiển thị cả bộ câu hỏi cũ theo dạng
-trắc nghiệm có đáp án/giải thích và workspace mới theo dạng Q&A giữ nguyên
-nguyên văn. Nội dung workspace được lưu trong SQL, kèm URL nguồn.
+Trong giao diện, bộ câu hỏi cũ giữ luồng trắc nghiệm riêng; nút `Bài thi khoá 2`
+mở một phần Q&A độc lập cho nội dung từ link, giữ nguyên câu hỏi, câu trả lời,
+giải thích và URL nguồn trong SQL. `Kho workspace` vẫn dùng để xem workspace
+câu hỏi gốc và các workspace khác.
 
 Mỗi câu trả lời sai được ghi vào `wrong_answers` và tăng
 `pending_review_count`. Khi người học trả lời đúng trong chế độ `wrong`, hệ

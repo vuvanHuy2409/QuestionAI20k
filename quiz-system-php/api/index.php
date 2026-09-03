@@ -314,7 +314,14 @@ try {
             fail_response('Mỗi lượt làm cần có từ 1 đến 20 câu trong ngân hàng 300 câu.');
         }
 
-        $questionStatement = $pdo->query('SELECT * FROM questions ORDER BY sort_order');
+        $pack = $pdo->query('SELECT id FROM question_sets ORDER BY id LIMIT 1')->fetch();
+        if (!$pack) {
+            fail_response('Chưa có bộ câu hỏi.', 503);
+        }
+        $questionStatement = $pdo->prepare(
+            'SELECT * FROM questions WHERE set_id = :set_id ORDER BY sort_order'
+        );
+        $questionStatement->execute(['set_id' => $pack['id']]);
         $questionMap = [];
         foreach ($questionStatement->fetchAll() as $question) {
             $questionMap[(int) $question['id']] = $question;
