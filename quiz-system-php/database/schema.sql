@@ -53,6 +53,38 @@ CREATE TABLE IF NOT EXISTS question_options (
   UNIQUE KEY uq_question_option (question_id, option_key)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS workspaces (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  slug VARCHAR(80) NOT NULL UNIQUE,
+  name VARCHAR(180) NOT NULL,
+  description VARCHAR(500) NOT NULL DEFAULT '',
+  kind VARCHAR(20) NOT NULL DEFAULT 'study',
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_workspaces_kind (kind)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS workspace_items (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  workspace_id BIGINT UNSIGNED NOT NULL,
+  question_id BIGINT UNSIGNED NULL,
+  item_type VARCHAR(20) NOT NULL,
+  sort_order INT UNSIGNED NOT NULL,
+  topic VARCHAR(160) NOT NULL DEFAULT '',
+  difficulty VARCHAR(20) NOT NULL DEFAULT '',
+  prompt TEXT NOT NULL,
+  answer LONGTEXT NOT NULL,
+  explanation LONGTEXT NOT NULL,
+  terms TEXT NOT NULL,
+  source_url VARCHAR(500) NOT NULL DEFAULT '',
+  source_title VARCHAR(180) NOT NULL DEFAULT '',
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_workspace_items_workspace FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE,
+  CONSTRAINT fk_workspace_items_question FOREIGN KEY (question_id) REFERENCES questions(id) ON DELETE CASCADE,
+  UNIQUE KEY uq_workspace_item_order (workspace_id, sort_order),
+  INDEX idx_workspace_items_question (question_id),
+  INDEX idx_workspace_items_type (workspace_id, item_type)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS quiz_attempts (
   id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   user_id BIGINT UNSIGNED NOT NULL,

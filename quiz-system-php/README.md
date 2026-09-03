@@ -23,6 +23,9 @@ python3 scripts/import_question_bank.py
 docker exec -i ai20k-mysql mysql -uai20k_user -pai20k_local_password -D ai20k_quiz < database/seed.sql
 ```
 
+Script tự động giữ phần seed workspace từ `database/workspace_seed.sql` khi
+tạo lại ngân hàng 300 câu.
+
 Parser kiểm tra đủ câu 1–300, mỗi câu có đúng 4 đáp án, đáp án đúng, giải thích,
 thuật ngữ, chủ đề và mức độ trước khi ghi seed. Giao diện chọn 20 câu mỗi lượt;
 toàn bộ 300 câu được lưu trong MySQL để mở rộng luồng luyện tập sau này.
@@ -34,6 +37,15 @@ Tài khoản demo:
 
 Tài khoản demo được tạo lazy bằng `password_hash()` ở lần đăng nhập đầu tiên.
 Người dùng cũng có thể tạo tài khoản mới trong giao diện.
+
+## Workspace và luồng sản phẩm
+
+SQL có thêm `workspaces` và `workspace_items`. Seed tạo workspace
+`bài thi thi khoá 2` và lưu nguyên văn 2 câu hỏi cùng phần trả lời/giải thích
+từ link chia sẻ, kèm một mục tham khảo chứa phần tóm tắt 4 metric RAG. Bộ câu
+hỏi 300 câu hiện có được liên kết vào workspace `AI20K — Câu hỏi hiện có`, nên
+các câu cũ vẫn giữ dạng trắc nghiệm nhưng có thể xem đáp án, giải thích và
+thuật ngữ theo cùng một mẫu.
 
 ## Luồng sản phẩm
 
@@ -91,7 +103,8 @@ quiz-system-php/
 │   └── index.php
 ├── database/
 │   ├── schema.sql
-│   └── seed.sql
+│   ├── seed.sql
+│   └── workspace_seed.sql
 ├── public/
 │   ├── index.html
 │   ├── styles.css

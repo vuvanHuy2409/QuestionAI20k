@@ -30,6 +30,35 @@ CREATE TABLE IF NOT EXISTS questions (
   terms TEXT NOT NULL DEFAULT ''
 );
 
+CREATE TABLE IF NOT EXISTS workspaces (
+  id INTEGER PRIMARY KEY,
+  slug TEXT NOT NULL UNIQUE,
+  name TEXT NOT NULL,
+  description TEXT NOT NULL DEFAULT '',
+  kind TEXT NOT NULL DEFAULT 'study' CHECK (kind IN ('quiz', 'study')),
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS workspace_items (
+  id INTEGER PRIMARY KEY,
+  workspace_id INTEGER NOT NULL,
+  question_id INTEGER,
+  item_type TEXT NOT NULL CHECK (item_type IN ('mcq', 'qa', 'reference')),
+  sort_order INTEGER NOT NULL,
+  topic TEXT NOT NULL DEFAULT '',
+  difficulty TEXT NOT NULL DEFAULT '',
+  prompt TEXT NOT NULL DEFAULT '',
+  answer TEXT NOT NULL DEFAULT '',
+  explanation TEXT NOT NULL DEFAULT '',
+  terms TEXT NOT NULL DEFAULT '',
+  source_url TEXT NOT NULL DEFAULT '',
+  source_title TEXT NOT NULL DEFAULT '',
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE,
+  FOREIGN KEY (question_id) REFERENCES questions(id) ON DELETE CASCADE,
+  UNIQUE (workspace_id, sort_order)
+);
+
 CREATE TABLE IF NOT EXISTS attempts (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   user_id INTEGER NOT NULL,
@@ -82,3 +111,5 @@ CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);
 CREATE INDEX IF NOT EXISTS idx_attempts_user_time ON attempts(user_id, completed_at DESC);
 CREATE INDEX IF NOT EXISTS idx_wrong_answers_user_time ON wrong_answers(user_id, answered_at DESC);
 CREATE INDEX IF NOT EXISTS idx_stats_pending ON user_question_stats(user_id, pending_review_count DESC);
+CREATE INDEX IF NOT EXISTS idx_workspace_items_workspace ON workspace_items(workspace_id, sort_order);
+CREATE INDEX IF NOT EXISTS idx_workspace_items_question ON workspace_items(question_id);

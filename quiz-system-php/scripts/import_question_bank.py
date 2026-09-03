@@ -13,6 +13,7 @@ QUESTION_RE = re.compile(r"^\*\*Câu\s+(\d+)\.\*\*\s*(.+?)\s*$")
 OPTION_RE = re.compile(r"^([A-D])\.\s+(.+?)\s*$")
 TOPIC_RE = re.compile(r"^##\s+\d+\.\s+(.+?)\s*$")
 DIFFICULTY_RE = re.compile(r"^###\s+(Dễ|Vừa|Khó)\s*$")
+WORKSPACE_SEED_PATH = Path(__file__).resolve().parents[1] / "database" / "workspace_seed.sql"
 
 
 @dataclass(frozen=True)
@@ -180,7 +181,7 @@ INSERT INTO question_options (question_id, option_key, option_text)
 VALUES
 """ + ",\n".join(option_rows) + """
 ON DUPLICATE KEY UPDATE option_text = VALUES(option_text);
-"""
+""" + "\n" + WORKSPACE_SEED_PATH.read_text(encoding="utf-8").strip() + "\n"
 
 
 def main() -> None:

@@ -29,6 +29,8 @@ const state = {
   pendingExplanationQuestion: null,
   explanationOpen: {},
   resultQuestions: {},
+  workspaces: [],
+  selectedWorkspaceId: null,
 };
 
 const $ = (selector) => document.querySelector(selector);
@@ -105,6 +107,8 @@ function setLoggedIn(user) {
 function setLoggedOut() {
   state.token = null;
   state.user = null;
+  state.workspaces = [];
+  state.selectedWorkspaceId = null;
   localStorage.removeItem("ai20k_php_mysql_token");
   $("#app-view").hidden = true;
   $("#login-view").hidden = false;
@@ -114,6 +118,7 @@ function setView(view) {
   state.view = view;
   const titles = {
     dashboard: ["Tổng quan học tập", "OVERVIEW"],
+    workspace: ["Kho workspace", "WORKSPACE LIBRARY"],
     quiz: ["Bài ôn tập", "QUIZ / FIXED SET"],
     result: ["Kết quả bài làm", "RESULTS"],
     wrong: ["Luyện lại câu sai", "SPACED REVIEW"],
@@ -125,6 +130,7 @@ function setView(view) {
     section.hidden = section.id !== `${view}-section`;
   });
   $$(".nav-item[data-view]").forEach((item) => item.classList.toggle("is-active", item.dataset.view === view));
+  $$(".workspace-nav-item").forEach((item) => item.classList.toggle("is-active", view === "workspace" && Number(item.dataset.workspaceId) === state.selectedWorkspaceId));
 }
 
 function renderPack(pack) {
@@ -199,15 +205,76 @@ function renderWrongList(questions) {
 
 async function loadDashboard() {
   try {
-    const [pack, stats, wrong, topics] = await Promise.all([api("pack"), api("stats"), api("wrong"), api("topics")]);
+    const [pack, stats, wrong, topics, workspaces] = await Promise.all([api("pack"), api("stats"), api("wrong"), api("topics"), api("workspaces")]);
     renderPack(pack.pack);
     renderStats(stats);
     renderWrongList(wrong.questions);
     renderTopics(topics.topics);
+    renderWorkspaces(workspaces.workspaces);
   } catch (error) {
     if (error.status === 401) setLoggedOut();
     else showToast(error.message, true);
   }
+}
+
+function renderWorkspaces(workspaces) {
+  state.workspaces = workspaces;
+  if (!state.selectedWorkspaceId || !workspaces.some((workspace) => workspace.id === state.selectedWorkspaceId)) {
+    const preferred = workspaces.find((workspace) => workspace.slug === "bai-thi-thi-khoa-2");
+    state.selectedWorkspaceId = preferred?.id || workspaces[0]?.id || null;
+  }
+
+  const nav = $("#workspace-nav-list");
+  nav.innerHTML = workspaces.length
+    ? workspaces.map((workspace) => `<button type="button" class="workspace-nav-item ${workspace.id === state.selectedWorkspaceId && state.view === "workspace" ? "is-active" : ""}" data-workspace-id="${workspace.id}"><span class="workspace-nav-dot"></span><span>${escapeHTML(workspace.name)}</span><small>${workspace.item_count}</small></button>`).join("")
+    : '<span class="workspace-nav-empty">Chưa có workspace</span>';
+
+  const select = $("#workspace-select");
+  select.innerHTML = workspaces.map((workspace) => `<option value="${workspace.id}">${escapeHTML(workspace.name)} · ${workspace.item_count} nội dung</option>`).join("");
+  select.value = state.selectedWorkspaceId ? String(state.selectedWorkspaceId) : "";
+}
+
+async function openWorkspace(workspaceId = state.selectedWorkspaceId) {
+  const id = Number(workspaceId);
+  if (!id) return;
+  state.selectedWorkspaceId = id;
+  setView("workspace");
+  $("#workspace-items").innerHTML = '<div class="empty-state compact">Đang tải nội dung workspace...</div>';
+  const workspace = state.workspaces.find((item) => item.id === id);
+  if (workspace) renderWorkspaceSummary(workspace);
+  try {
+    const data = await api("workspace-items", { query: { workspace_id: id } });
+    renderWorkspaceSummary(data.workspace);
+    renderWorkspaceItems(data.items);
+  } catch (error) {
+    showToast(error.message, true);
+    $("#workspace-items").innerHTML = '<div class="empty-state compact">Không tải được nội dung workspace.</div>';
+  }
+}
+
+function renderWorkspaceSummary(workspace) {
+  $("#workspace-title").textContent = workspace.name;
+  $("#workspace-description").textContent = workspace.description || "Các câu hỏi và phần giải thích được lưu trong SQL.";
+  $("#workspace-item-count").textContent = workspace.item_count || 0;
+  $("#workspace-summary-actions").innerHTML = workspace.mcq_count
+    ? '<button type="button" class="button button-outline" data-action="start-workspace-quiz">Làm trắc nghiệm <span>→</span></button>'
+    : '<span class="workspace-type-label">Q&amp;A / TỰ HỌC</span>';
+}
+
+function renderWorkspaceItems(items) {
+  $("#workspace-items").innerHTML = items.length
+    ? items.map((item, index) => {
+        const isMcq = item.item_type === "mcq";
+        const heading = item.item_type === "reference" ? "Tài liệu tham khảo" : `Câu ${index + 1}`;
+        const options = isMcq
+          ? `<div class="workspace-options">${Object.entries(item.options || {}).map(([letter, option]) => `<div class="workspace-option ${letter === item.correct_option ? "is-correct" : ""}"><span>${letter}</span><p>${escapeHTML(option)}</p></div>`).join("")}</div>`
+          : "";
+        const answer = isMcq && item.correct_option ? `${item.correct_option}. ${(item.options || {})[item.correct_option] || ""}` : item.answer;
+        const explanation = item.explanation && item.explanation !== item.answer ? `<div class="workspace-block"><strong>Giải thích</strong><p class="workspace-text">${escapeHTML(item.explanation)}</p></div>` : "";
+        const source = item.source_url ? `<a class="workspace-source" href="${escapeHTML(item.source_url)}" target="_blank" rel="noreferrer">Nguồn: ${escapeHTML(item.source_title || item.source_url)}</a>` : "";
+        return `<article class="workspace-item panel ${isMcq ? "workspace-item-mcq" : "workspace-item-qa"}"><div class="workspace-item-head"><span class="question-number">${heading}</span><span class="topic-label">${escapeHTML(item.topic || "AI20K")}</span>${item.difficulty ? `<span class="difficulty-badge">${escapeHTML(item.difficulty)}</span>` : ""}</div><h3>${escapeHTML(item.prompt)}</h3>${options}${answer ? `<div class="workspace-block workspace-answer"><strong>${isMcq ? "Đáp án đúng" : "Câu trả lời / giải thích"}</strong><p class="workspace-text">${escapeHTML(answer)}</p></div>` : ""}${explanation}${item.terms ? `<div class="workspace-block workspace-terms"><strong>Thuật ngữ</strong><p class="workspace-text">${formatTerms(item.terms)}</p></div>` : ""}${source}</article>`;
+      }).join("")
+    : '<div class="empty-state compact">Workspace này chưa có nội dung.</div>';
 }
 
 async function showWrongView() {
@@ -452,10 +519,17 @@ function toggleAuthMode() {
 }
 
 document.addEventListener("click", (event) => {
+  const workspaceButton = event.target.closest("[data-workspace-id]");
+  if (workspaceButton) {
+    openWorkspace(Number(workspaceButton.dataset.workspaceId));
+    return;
+  }
+
   const viewButton = event.target.closest("[data-view]");
   if (viewButton) {
     const view = viewButton.dataset.view;
     if (view === "dashboard") { setView("dashboard"); loadDashboard(); }
+    else if (view === "workspace") openWorkspace();
     else if (view === "quiz") startQuiz("normal", state.selectedTopic);
     else if (view === "wrong") showWrongView();
     return;
@@ -465,6 +539,7 @@ document.addEventListener("click", (event) => {
   const action = actionButton.dataset.action;
   if (action === "start-normal") startQuiz("normal", state.selectedTopic);
   else if (action === "start-wrong") startQuiz("wrong", state.selectedTopic);
+  else if (action === "start-workspace-quiz") startQuiz("normal", state.selectedTopic);
   else if (action === "exit-quiz") { setView("dashboard"); loadDashboard(); }
   else if (action === "open-explanation") openExplanation(Number(actionButton.dataset.questionId));
   else if (action === "open-live-explanation") openExplanation(Number(actionButton.dataset.questionId), $("#live-explanation-content"));
@@ -487,6 +562,10 @@ $("#options-list").addEventListener("click", (event) => {
 $("#topic-select").addEventListener("change", (event) => {
   state.selectedTopic = event.currentTarget.value;
   updateTopicHint();
+});
+
+$("#workspace-select").addEventListener("change", (event) => {
+  openWorkspace(Number(event.currentTarget.value));
 });
 
 $("#login-form").addEventListener("submit", handleLogin);

@@ -82,6 +82,52 @@ def question_payload(row: sqlite3.Row, include_solution: bool = False) -> dict:
     return payload
 
 
+def workspace_payload(row: sqlite3.Row) -> dict:
+    return {
+        "id": row["id"],
+        "slug": row["slug"],
+        "name": row["name"],
+        "description": row["description"],
+        "kind": row["kind"],
+        "item_count": row["item_count"],
+        "mcq_count": row["mcq_count"],
+        "qa_count": row["qa_count"],
+        "reference_count": row["reference_count"],
+    }
+
+
+def workspace_item_payload(item: sqlite3.Row, linked_question: sqlite3.Row | None = None) -> dict:
+    if linked_question:
+        payload = question_payload(linked_question, include_solution=True)
+        payload.update(
+            {
+                "item_id": item["id"],
+                "workspace_id": item["workspace_id"],
+                "item_type": "mcq",
+                "sort_order": item["sort_order"],
+                "source_url": item["source_url"],
+                "source_title": item["source_title"],
+            }
+        )
+        return payload
+
+    return {
+        "id": item["id"],
+        "item_id": item["id"],
+        "workspace_id": item["workspace_id"],
+        "item_type": item["item_type"],
+        "sort_order": item["sort_order"],
+        "topic": item["topic"],
+        "difficulty": item["difficulty"],
+        "prompt": item["prompt"],
+        "answer": item["answer"],
+        "explanation": item["explanation"],
+        "terms": item["terms"],
+        "source_url": item["source_url"],
+        "source_title": item["source_title"],
+    }
+
+
 class QuizHandler(BaseHTTPRequestHandler):
     server_version = "AI20KQuiz/1.0"
 
@@ -161,6 +207,18 @@ class QuizHandler(BaseHTTPRequestHandler):
             if not user:
                 return
             self.handle_questions(parse_qs(parsed.query), user)
+            return
+
+        if parsed.path == "/api/workspaces":
+            user = self.require_user()
+            if user:
+                self.handle_workspaces()
+            return
+
+        if parsed.path == "/api/workspace-items":
+            user = self.require_user()
+            if user:
+                self.handle_workspace_items(parse_qs(parsed.query))
             return
 
         if parsed.path == "/api/stats":
@@ -261,26 +319,64 @@ class QuizHandler(BaseHTTPRequestHandler):
         except ValueError:
             limit = 20
 
+        workspace_id: int | None = None
+        raw_workspace_id = query.get("workspace_id", [""])[0].strip()
+        if raw_workspace_id:
+            try:
+                workspace_id = int(raw_workspace_id)
+                if workspace_id < 1:
+                    raise ValueError
+            except ValueError:
+                self.send_error_json(HTTPStatus.BAD_REQUEST, "Workspace không hợp lệ.")
+                return
+
         with db_connection() as connection:
             if mode == "wrong":
-                rows = connection.execute(
+                workspace_clause = ""
+                params: list[object] = [user["id"]]
+                if workspace_id is not None:
+                    workspace_clause = """
+                      AND questions.id IN (
+                        SELECT question_id
+                        FROM workspace_items
+                        WHERE workspace_id = ? AND question_id IS NOT NULL
+                      )
                     """
+                    params.append(workspace_id)
+                params.append(limit)
+                rows = connection.execute(
+                    f"""
                     SELECT questions.*
                     FROM questions
                     JOIN user_question_stats
                       ON user_question_stats.question_id = questions.id
                      AND user_question_stats.user_id = ?
                     WHERE user_question_stats.pending_review_count > 0
+                    {workspace_clause}
                     ORDER BY user_question_stats.pending_review_count DESC,
                              user_question_stats.last_wrong_at ASC
                     LIMIT ?
                     """,
-                    (user["id"], limit),
+                    params,
                 ).fetchall()
             else:
-                rows = connection.execute(
-                    "SELECT * FROM questions ORDER BY RANDOM() LIMIT ?", (limit,)
-                ).fetchall()
+                if workspace_id is None:
+                    rows = connection.execute(
+                        "SELECT * FROM questions ORDER BY RANDOM() LIMIT ?", (limit,)
+                    ).fetchall()
+                else:
+                    rows = connection.execute(
+                        """
+                        SELECT questions.*
+                        FROM questions
+                        JOIN workspace_items
+                          ON workspace_items.question_id = questions.id
+                         AND workspace_items.workspace_id = ?
+                        ORDER BY RANDOM()
+                        LIMIT ?
+                        """,
+                        (workspace_id, limit),
+                    ).fetchall()
 
         self.send_json(
             HTTPStatus.OK,
@@ -288,6 +384,74 @@ class QuizHandler(BaseHTTPRequestHandler):
                 "mode": mode,
                 "questions": [question_payload(row) for row in rows],
             },
+        )
+
+    def handle_workspaces(self) -> None:
+        with db_connection() as connection:
+            rows = connection.execute(
+                """
+                SELECT workspaces.id, workspaces.slug, workspaces.name,
+                       workspaces.description, workspaces.kind,
+                       COUNT(workspace_items.id) AS item_count,
+                       COALESCE(SUM(CASE WHEN workspace_items.question_id IS NOT NULL THEN 1 ELSE 0 END), 0) AS mcq_count,
+                       COALESCE(SUM(CASE WHEN workspace_items.item_type = 'qa' THEN 1 ELSE 0 END), 0) AS qa_count,
+                       COALESCE(SUM(CASE WHEN workspace_items.item_type = 'reference' THEN 1 ELSE 0 END), 0) AS reference_count
+                FROM workspaces
+                LEFT JOIN workspace_items ON workspace_items.workspace_id = workspaces.id
+                GROUP BY workspaces.id
+                ORDER BY workspaces.id
+                """
+            ).fetchall()
+        self.send_json(HTTPStatus.OK, {"workspaces": [workspace_payload(row) for row in rows]})
+
+    def handle_workspace_items(self, query: dict[str, list[str]]) -> None:
+        raw_workspace_id = query.get("workspace_id", [""])[0].strip()
+        try:
+            workspace_id = int(raw_workspace_id)
+            if workspace_id < 1:
+                raise ValueError
+        except ValueError:
+            self.send_error_json(HTTPStatus.BAD_REQUEST, "Workspace không hợp lệ.")
+            return
+
+        with db_connection() as connection:
+            workspace = connection.execute(
+                "SELECT * FROM workspaces WHERE id = ?", (workspace_id,)
+            ).fetchone()
+            if not workspace:
+                self.send_error_json(HTTPStatus.NOT_FOUND, "Không tìm thấy workspace.")
+                return
+            items = connection.execute(
+                """
+                SELECT *
+                FROM workspace_items
+                WHERE workspace_id = ?
+                ORDER BY sort_order
+                """,
+                (workspace_id,),
+            ).fetchall()
+            payload = []
+            for item in items:
+                linked_question = None
+                if item["question_id"] is not None:
+                    linked_question = connection.execute(
+                        "SELECT * FROM questions WHERE id = ?", (item["question_id"],)
+                    ).fetchone()
+                payload.append(workspace_item_payload(item, linked_question))
+
+        workspace_data = dict(workspace)
+        workspace_data.update(
+            {
+                "item_count": len(payload),
+                "mcq_count": sum(item["item_type"] == "mcq" for item in payload),
+                "qa_count": sum(item["item_type"] == "qa" for item in payload),
+                "reference_count": sum(item["item_type"] == "reference" for item in payload),
+            }
+        )
+
+        self.send_json(
+            HTTPStatus.OK,
+            {"workspace": workspace_data, "items": payload},
         )
 
     def handle_wrong_questions(self, user: sqlite3.Row) -> None:

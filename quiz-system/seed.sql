@@ -20,4 +20,111 @@ INSERT OR IGNORE INTO questions (id, topic, difficulty, prompt, option_a, option
   (261, 'Data Pipeline, Quality & Data Observability', 'Khó', 'Một lỗi parser làm chunk ngắn bất thường, retrieval sai và agent trả policy cũ. Đây là mẫu lỗi nào?', 'Chỉ là temperature drift ở generation', 'Data cascade từ upstream lan qua ingestion và serving', 'Chỉ là false positive của UI', 'Chỉ là lỗi auth của API gateway', 'B', 'Một quyết định/lỗi đầu nguồn có thể làm hậu quả lớn dần qua các tầng.', '**retrieval**: truy xuất; tìm các chunk liên quan từ kho dữ liệu.; **agent**: hệ thống dùng model để lập kế hoạch, gọi tool, quan sát kết quả và lặp đến khi hoàn thành mục tiêu.'),
   (271, 'Guardrails, Safety, Deployment & Observability', 'Dễ', 'Guardrails tồn tại để làm gì?', 'Làm model sinh văn bản dài hơn', 'Giới hạn hành vi rủi ro và tăng độ tin cậy của agent', 'Thay thế toàn bộ việc đánh giá sản phẩm', 'Bảo đảm mọi prompt đều cho cùng kết quả', 'B', 'Guardrails là lớp kiểm soát bắt buộc khi agent có dữ liệu, tool hoặc hành động thực tế.', '**guardrails**: hàng rào kiểm soát; các lớp giới hạn input, model, output và hành động rủi ro.; **agent**: hệ thống dùng model để lập kế hoạch, gọi tool, quan sát kết quả và lặp đến khi hoàn thành mục tiêu.'),
   (291, 'Guardrails, Safety, Deployment & Observability', 'Khó', 'Agent vừa đọc dữ liệu riêng, vừa nhận nội dung web không tin cậy, vừa có quyền gửi email. Vì sao đây là lethal trifecta?', 'Ba yếu tố chỉ làm latency tăng nhưng không tăng risk', 'Ba yếu tố cùng tạo đường từ untrusted input tới side effect trên private data', 'Private data tự động làm mọi prompt an toàn hơn', 'Có email tool thì agent không cần input guardrail', 'B', 'Private data, untrusted content và external side effect kết hợp làm blast radius lớn.', '**side effect**: tác động bên ngoài như gửi email, xóa dữ liệu, trừ tiền hoặc đặt vé.; **agent**: hệ thống dùng model để lập kế hoạch, gọi tool, quan sát kết quả và lặp đến khi hoàn thành mục tiêu.');
+
+INSERT INTO workspaces (id, slug, name, description, kind)
+VALUES
+  (1, 'ai20k-cau-hoi-cu', 'AI20K — Câu hỏi hiện có', 'Bộ câu hỏi trắc nghiệm AI20K hiện có, giữ nguyên đáp án và giải thích.', 'quiz'),
+  (2, 'bai-thi-thi-khoa-2', 'bài thi thi khoá 2', 'Bộ câu hỏi và phần trả lời/giải thích được giữ nguyên từ link ChatGPT đã chia sẻ.', 'study')
+ON CONFLICT(id) DO UPDATE SET
+  slug = excluded.slug,
+  name = excluded.name,
+  description = excluded.description,
+  kind = excluded.kind;
+
+INSERT INTO workspace_items (id, workspace_id, question_id, item_type, sort_order)
+SELECT id, 1, id, 'mcq', id
+FROM questions
+WHERE id IN (1, 11, 21, 34, 51, 71, 91, 111, 121, 141, 151, 171, 181, 201, 211, 231, 241, 261, 271, 291)
+ON CONFLICT(id) DO UPDATE SET
+  workspace_id = excluded.workspace_id,
+  question_id = excluded.question_id,
+  item_type = excluded.item_type,
+  sort_order = excluded.sort_order;
+
+INSERT INTO workspace_items
+  (id, workspace_id, item_type, sort_order, topic, difficulty, prompt, answer, explanation, terms, source_url, source_title)
+VALUES
+  (10001, 2, 'reference', 1, 'RAG Evaluation', 'Vừa',
+   'Bốn metric đánh giá toàn diện hệ thống RAG',
+   'Nếu viết ở mức sinh viên năm 3–4 thì có thể trả lời ngắn gọn như sau:
+
+1. Faithfulness: Đo xem câu trả lời của agent có đúng với thông tin trong tài liệu bảo hành hay không. Ví dụ tài liệu ghi bảo hành 12 tháng thì agent không được trả lời thành 24 tháng.
+
+2. Answer Relevancy: Đo mức độ câu trả lời có đúng với câu hỏi của khách hàng hay không. Ví dụ khách hỏi về bảo hành màn hình thì agent phải trả lời đúng nội dung đó, không lan sang bảo hành pin.
+
+3. Context Precision: Đánh giá các tài liệu mà hệ thống retrieve có thực sự liên quan đến câu hỏi không. Nếu hỏi về đổi trả nhưng lại lấy tài liệu vận chuyển thì precision sẽ thấp.
+
+4. Context Recall: Đo khả năng hệ thống lấy đủ các tài liệu cần thiết để trả lời. Nếu câu hỏi cần nhiều điều kiện của chính sách bảo hành mà hệ thống chỉ lấy được một phần thì recall sẽ thấp.
+
+Bốn metric này giúp đánh giá toàn diện hệ thống RAG: retrieval có lấy đúng và đủ tài liệu hay không (Context Precision, Context Recall), còn câu trả lời có đúng tài liệu và đúng câu hỏi hay không (Faithfulness, Answer Relevancy).',
+   '',
+   'Faithfulness; Answer Relevancy; Context Precision; Context Recall; RAG; retrieval',
+   'https://chatgpt.com/share/6a97a0e0-bb60-83ec-8d2a-17c19d82d6f2?ogimg=plain',
+   'Exposing AI via REST API'),
+  (10002, 2, 'qa', 2, 'RAG Evaluation', 'Khó',
+   'Tình huống: Team đang build agent trả lời câu hỏi về chính sách bảo hành sản phẩm điện tử cho bộ phận CSKH.
+
+Sau 2 tuần demo, tech lead yêu cầu: ''Trước khi production, tôi cần bằng chứng khoa học agent này tốt. Không phải cảm nhận — cần số liệu cụ thể.'' Team có: 500 câu hỏi thực từ CSKH trong 3 tháng qua, tài liệu bảo hành đầy đủ, và budget để dùng GPT-4 làm judge.
+
+Nếu Faithfulness = 0.95 nhưng Context Recall = 0.60, điều này có nghĩa gì? Nên fix ở đâu',
+   'Có thể trả lời ở mức sinh viên năm 3–4 như sau:
+
+Faithfulness = 0.95 nghĩa là câu trả lời của agent hầu như luôn đúng với tài liệu được lấy ra, rất ít hoặc không bị hallucination.
+
+Context Recall = 0.60 nghĩa là hệ thống chỉ lấy được khoảng 60% tài liệu cần thiết để trả lời câu hỏi. Nói cách khác, retriever thường bỏ sót các thông tin liên quan.
+
+Vì vậy, vấn đề nằm ở Retrieval, không phải ở LLM. Nên cải thiện phần RAG retrieval, ví dụ:
+
+Cải thiện chunking tài liệu.
+
+Tối ưu embedding model.
+
+Điều chỉnh top-k.
+
+Cập nhật hoặc tối ưu vector database và retrieval pipeline.
+
+Kết luận: Agent trả lời đúng trên những tài liệu đã lấy được (Faithfulness cao), nhưng do retrieval chưa lấy đủ tài liệu (Context Recall thấp) nên nhiều câu trả lời có thể vẫn thiếu thông tin. Cần ưu tiên fix ở tầng Retrieval.',
+   '',
+   'Faithfulness; Context Recall; Retrieval; retriever; chunking; embedding; top-k; vector database; retrieval pipeline',
+   'https://chatgpt.com/share/6a97a0e0-bb60-83ec-8d2a-17c19d82d6f2?ogimg=plain',
+   'Exposing AI via REST API'),
+  (10003, 2, 'qa', 3, 'RAG Evaluation', 'Khó',
+   'Tình huống: Team đang build agent trả lời câu hỏi về chính sách bảo hành sản phẩm điện tử cho bộ phận CSKH.
+
+Sau 2 tuần demo, tech lead yêu cầu: ''Trước khi production, tôi cần bằng chứng khoa học agent này tốt. Không phải cảm nhận — cần số liệu cụ thể.'' Team có: 500 câu hỏi thực từ CSKH trong 3 tháng qua, tài liệu bảo hành đầy đủ, và budget để dùng GPT-4 làm judge.
+
+Thiết kế golden dataset từ 500 câu hỏi trên. Mô tả: cách chọn 20 câu đại diện, thông tin cần có trong mỗi row.',
+   'Có thể trả lời ngắn gọn ở mức sinh viên năm 3–4 như sau:
+
+Để tạo golden dataset, trước tiên chọn 20 câu hỏi đại diện từ 500 câu hỏi thật. Nên chọn đủ nhiều nhóm như: thời hạn bảo hành, điều kiện được bảo hành, trường hợp từ chối bảo hành, đổi trả, sửa chữa, bảo hành phụ kiện và các câu hỏi khó hoặc nhiều điều kiện để tập dữ liệu phản ánh đúng các tình huống thực tế.
+
+Mỗi row trong golden dataset nên gồm các thông tin:
+
+Question: Câu hỏi của khách hàng.
+
+Ground Truth Answer: Câu trả lời đúng theo tài liệu bảo hành.
+
+Relevant Document/Chunk: Tài liệu hoặc đoạn văn bản được dùng để trả lời.
+
+Expected Source: Tên tài liệu hoặc ID của chunk.
+
+Category: Loại câu hỏi (thời hạn bảo hành, đổi trả, từ chối bảo hành,...).
+
+Golden dataset này sẽ được dùng để chạy evaluation, so sánh câu trả lời của agent với đáp án chuẩn và tính các metric như Faithfulness, Answer Relevancy, Context Precision và Context Recall trước khi đưa hệ thống vào production.',
+   '',
+   'golden dataset; Ground Truth Answer; Relevant Document/Chunk; Expected Source; Category; evaluation; Faithfulness; Answer Relevancy; Context Precision; Context Recall',
+   'https://chatgpt.com/share/6a97a0e0-bb60-83ec-8d2a-17c19d82d6f2?ogimg=plain',
+   'Exposing AI via REST API')
+ON CONFLICT(id) DO UPDATE SET
+  workspace_id = excluded.workspace_id,
+  item_type = excluded.item_type,
+  sort_order = excluded.sort_order,
+  topic = excluded.topic,
+  difficulty = excluded.difficulty,
+  prompt = excluded.prompt,
+  answer = excluded.answer,
+  explanation = excluded.explanation,
+  terms = excluded.terms,
+  source_url = excluded.source_url,
+  source_title = excluded.source_title;
 COMMIT;

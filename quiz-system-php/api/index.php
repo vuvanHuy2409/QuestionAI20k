@@ -141,6 +141,65 @@ try {
         json_response(['pack' => $pack]);
     }
 
+    if ($action === 'workspaces' && $method === 'GET') {
+        required_user($pdo);
+        $statement = $pdo->query(
+            'SELECT workspaces.id, workspaces.slug, workspaces.name,
+                    workspaces.description, workspaces.kind,
+                    COUNT(workspace_items.id) AS item_count,
+                    COALESCE(SUM(workspace_items.question_id IS NOT NULL), 0) AS mcq_count,
+                    COALESCE(SUM(workspace_items.item_type = \'qa\'), 0) AS qa_count,
+                    COALESCE(SUM(workspace_items.item_type = \'reference\'), 0) AS reference_count
+             FROM workspaces
+             LEFT JOIN workspace_items ON workspace_items.workspace_id = workspaces.id
+             GROUP BY workspaces.id
+             ORDER BY workspaces.id'
+        );
+        $workspaces = array_map(
+            static fn (array $workspace): array => workspace_public($workspace),
+            $statement->fetchAll()
+        );
+        json_response(['workspaces' => $workspaces]);
+    }
+
+    if ($action === 'workspace-items' && $method === 'GET') {
+        required_user($pdo);
+        $workspaceId = (int) ($_GET['workspace_id'] ?? 0);
+        if ($workspaceId < 1) {
+            fail_response('Workspace không hợp lệ.');
+        }
+        $workspaceStatement = $pdo->prepare('SELECT * FROM workspaces WHERE id = :id LIMIT 1');
+        $workspaceStatement->execute(['id' => $workspaceId]);
+        $workspace = $workspaceStatement->fetch();
+        if (!$workspace) {
+            fail_response('Không tìm thấy workspace.', 404);
+        }
+        $itemStatement = $pdo->prepare(
+            'SELECT * FROM workspace_items
+             WHERE workspace_id = :workspace_id
+             ORDER BY sort_order'
+        );
+        $itemStatement->execute(['workspace_id' => $workspaceId]);
+        $items = [];
+        foreach ($itemStatement->fetchAll() as $item) {
+            $question = null;
+            if ($item['question_id'] !== null) {
+                $questionStatement = $pdo->prepare('SELECT * FROM questions WHERE id = :id LIMIT 1');
+                $questionStatement->execute(['id' => $item['question_id']]);
+                $question = $questionStatement->fetch() ?: null;
+            }
+            $items[] = workspace_item_public($pdo, $item, $question);
+        }
+        $workspace['item_count'] = count($items);
+        $workspace['mcq_count'] = count(array_filter($items, static fn (array $item): bool => $item['item_type'] === 'mcq'));
+        $workspace['qa_count'] = count(array_filter($items, static fn (array $item): bool => $item['item_type'] === 'qa'));
+        $workspace['reference_count'] = count(array_filter($items, static fn (array $item): bool => $item['item_type'] === 'reference'));
+        json_response([
+            'workspace' => workspace_public($workspace),
+            'items' => $items,
+        ]);
+    }
+
     if ($action === 'topics' && $method === 'GET') {
         required_user($pdo);
         $pack = $pdo->query('SELECT id FROM question_sets ORDER BY id LIMIT 1')->fetch();

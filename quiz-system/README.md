@@ -31,10 +31,15 @@ docker compose down
 ## Dữ liệu SQL
 
 - `schema.sql`: tạo users, sessions, questions, attempts, attempt_answers,
-  wrong_answers và user_question_stats.
+  wrong_answers, user_question_stats, workspaces và workspace_items.
 - `seed.sql`: 20 câu hỏi mẫu, phân bố theo các nhánh AI, Prompt, Agent, RAG,
-  Data và Safety.
+  Data và Safety; đồng thời tạo workspace `bài thi thi khoá 2` với toàn bộ
+  nội dung hỏi–đáp/giải thích đã lấy từ link chia sẻ.
 - `data/quiz.db`: tự tạo khi chạy server, không cần commit thủ công.
+
+Trong giao diện, mục `Kho workspace` hiển thị cả bộ câu hỏi cũ theo dạng
+trắc nghiệm có đáp án/giải thích và workspace mới theo dạng Q&A giữ nguyên
+nguyên văn. Nội dung workspace được lưu trong SQL, kèm URL nguồn.
 
 Mỗi câu trả lời sai được ghi vào `wrong_answers` và tăng
 `pending_review_count`. Khi người học trả lời đúng trong chế độ `wrong`, hệ

@@ -202,3 +202,51 @@ function question_public(
     }
     return $payload;
 }
+
+function workspace_public(array $workspace): array
+{
+    return [
+        'id' => (int) $workspace['id'],
+        'slug' => $workspace['slug'],
+        'name' => $workspace['name'],
+        'description' => $workspace['description'],
+        'kind' => $workspace['kind'],
+        'item_count' => (int) $workspace['item_count'],
+        'mcq_count' => (int) $workspace['mcq_count'],
+        'qa_count' => (int) $workspace['qa_count'],
+        'reference_count' => (int) $workspace['reference_count'],
+    ];
+}
+
+function workspace_item_public(PDO $pdo, array $item, ?array $question = null): array
+{
+    if ($question !== null) {
+        return array_merge(
+            question_public($pdo, $question, true),
+            [
+                'item_id' => (int) $item['id'],
+                'workspace_id' => (int) $item['workspace_id'],
+                'item_type' => 'mcq',
+                'sort_order' => (int) $item['sort_order'],
+                'source_url' => $item['source_url'],
+                'source_title' => $item['source_title'],
+            ]
+        );
+    }
+
+    return [
+        'id' => (int) $item['id'],
+        'item_id' => (int) $item['id'],
+        'workspace_id' => (int) $item['workspace_id'],
+        'item_type' => $item['item_type'],
+        'sort_order' => (int) $item['sort_order'],
+        'topic' => $item['topic'],
+        'difficulty' => $item['difficulty'],
+        'prompt' => $item['prompt'],
+        'answer' => $item['answer'],
+        'explanation' => $item['explanation'],
+        'terms' => $item['terms'],
+        'source_url' => $item['source_url'],
+        'source_title' => $item['source_title'],
+    ];
+}
